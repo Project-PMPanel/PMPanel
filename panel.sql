@@ -503,7 +503,9 @@ INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (6, 'mailRegEnable', 
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (7, 'mailLimit', '10');
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (8, 'mailType', 'smtp');
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (9, 'mailConfig', '{\"password\":\"\",\"port\":\"\",\"host\":\"\",\"username\":\"\"}');
-INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (101, 'enableEmailSuffix', '@qq.com;@163.com;@gmail.com;@yahoo.com;@msn.com;@hotmail.com;@live.com;@163.net;@protonmail.com');
+INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (10, 'notifyMailType', 'smtp');
+INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (11, 'notifyMailConfig', '{\"password\":\"\",\"port\":\"\",\"host\":\"\",\"username\":\"\"}');
+INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (101, 'enableEmailSuffix', '@qq.com;@163.com;@gmail.com');
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (102, 'userPortRange', '10000:65535');
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (103, 'inviteCount', '10');
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (104, 'inviteRate', '0.1');

@@ -18,6 +18,7 @@ import project.daihao18.panel.service.UserService;
 import javax.annotation.PostConstruct;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -53,7 +54,7 @@ public class EmailUtil {
     private static UserService userService;
 
     /**
-     * 根据emailType和application.properties配置的邮件方式发送邮件
+     * 根据emailType和application.properties配置的邮件方式发送验证码邮件
      *
      * @param emailType
      * @param subject
@@ -98,11 +99,37 @@ public class EmailUtil {
             text = "您好,您的验证码为:" + "<font color='red'>" + checkCode + "</font><br/>";
             switch (configService.getValueByName("mailType")) {
                 case "smtp":
-                    return sendEmailBySmtp(subject, text, isHtml, sendTo);
+                    return sendEmailBySmtp(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
         return null;
     }
+
+    /**
+     * 通知发信
+     *
+     * @param subject
+     * @param text
+     * @param isHtml
+     * @param sendTo
+     * @return
+     */
+    public static boolean sendEmail(String subject, String text, boolean isHtml, String sendTo) {
+        try {
+            switch (configService.getValueByName("notifyMailType")) {
+                case "smtp":
+                    return sendEmailBySmtp(subject, text, isHtml, sendTo, 1);
+            }
+            return true;
+        } catch (MessagingException e) {
+            // 发送失败,将该email放到redis邮件队列最后面
+            redisService.lPush("panel::failedEmails", sendTo, 86400);
+            log.info("邮件发送失败: {}, 失败原因: {}", sendTo, e.getMessage());
+            return false;
+        }
+    }
+
+    ///////////////////////////
 
     /**
      * smtp发送邮件
@@ -111,12 +138,25 @@ public class EmailUtil {
      * @param text
      * @param isHtml
      * @param sendTo
+     * @param type
      * @return
      * @throws MessagingException
      */
-    public static Result sendEmailBySmtp(String subject, String text, boolean isHtml, String sendTo) throws MessagingException {
+    public static boolean sendEmailBySmtp(String subject, String text, boolean isHtml, String sendTo, Integer type) throws MessagingException {
+        if (ObjectUtil.isEmpty(sendTo)) {
+            return false;
+        }
         // 查询config的mail配置
-        Map<String, Object> mailConfig = JSONUtil.toBean(configService.getValueByName("mailConfig"), Map.class);
+        Map<String, Object> mailConfig = new HashMap<>();
+        switch (type) {
+            case 0:
+                // 0是验证码
+                mailConfig = JSONUtil.toBean(configService.getValueByName("mailConfig"), Map.class);
+                break;
+            case 1:
+                // 1是公告
+                mailConfig = JSONUtil.toBean(configService.getValueByName("notifyMailConfig"), Map.class);
+        }
 
         jms.setHost(mailConfig.get("host").toString());
         jms.setPort(Double.valueOf(mailConfig.get("port").toString()).intValue());
@@ -125,7 +165,12 @@ public class EmailUtil {
         jms.setDefaultEncoding("Utf-8");
         Properties p = new Properties();
         p.setProperty("mail.smtp.auth", "true");
-        p.setProperty("mail.smtp.ssl.enable", "true");
+        if ((Boolean) mailConfig.get("ssl")) {
+            p.setProperty("mail.smtp.ssl.enable", "true");
+        }
+        p.setProperty("mail.smtp.timeout", "5000");
+        p.setProperty("mail.smtp.connectiontimeout", "5000");
+        p.setProperty("mail.smtp.writetimeout", "5000");
         jms.setJavaMailProperties(p);
 
         MimeMessage mimeMessage = jms.createMimeMessage();
@@ -140,7 +185,7 @@ public class EmailUtil {
 
         jms.send(mimeMessage);
 
-        return Result.ok().message("");
+        return true;
     }
 
 }

@@ -183,6 +183,13 @@ public interface RedisService {
     Long lRemove(String key, long count, Object value);
 
     /**
+     * 从List结构左边pop一个元素
+     * @param key
+     * @return
+     */
+    Object lLeftPop(String key);
+
+    /**
      * 根据通配符key删除
      * @param key
      * @return

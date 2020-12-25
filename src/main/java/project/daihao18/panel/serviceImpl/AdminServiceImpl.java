@@ -8,6 +8,7 @@ import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.common.response.ResultCodeEnum;
 import project.daihao18.panel.common.schedule.CronTaskRegistrar;
 import project.daihao18.panel.common.schedule.SchedulingRunnable;
+import project.daihao18.panel.common.utils.EmailUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.*;
@@ -26,6 +28,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +39,7 @@ import java.util.stream.Collectors;
  * @Date: 2020-11-28 15:32
  */
 @Service
+@Slf4j
 public class AdminServiceImpl implements AdminService {
 
     @Autowired
@@ -121,7 +126,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getSiteConfig() {
-        String[] keys = {"siteName", "siteUrl", "subUrl", "regEnable", "inviteOnly", "mailRegEnable", "mailLimit", "mailType", "mailConfig"};
+        String[] keys = {"siteName", "siteUrl", "subUrl", "regEnable", "inviteOnly", "mailRegEnable", "mailLimit", "mailType", "mailConfig", "notifyMailType", "notifyMailConfig"};
         Map<String, Object> siteConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
@@ -131,7 +136,7 @@ public class AdminServiceImpl implements AdminService {
                 siteConfig.put(keys[i], Integer.parseInt(value));
             } else {
                 // mailConfig 转成map
-                if ("mailConfig".equalsIgnoreCase(keys[i])) {
+                if ("mailConfig".equalsIgnoreCase(keys[i]) || "notifyMailConfig".equalsIgnoreCase(keys[i])) {
                     Map<String, Object> map = JSONUtil.toBean(value, Map.class);
                     siteConfig.put(keys[i], map);
                 } else {
@@ -645,8 +650,10 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public Result saveOrUpdateAnnouncement(Announcement announcement) {
+        Lock lock = new ReentrantLock();
+        lock.lock();
         announcement.setTime(new Date());
-        Boolean saveFlag = false;
+        Boolean saveFlag = true;
         if (announcement.getSave()) {
             saveFlag = announcementService.saveOrUpdate(announcement);
             if (saveFlag) {
@@ -657,9 +664,76 @@ public class AdminServiceImpl implements AdminService {
             // TODO 发送bot提醒
         }
         if (announcement.getMail()) {
-            // 根据userFilter获取用户
-            // TODO 发送email提醒,从参数中拿htmlclient.yaml
+            // 根据userFilter获取用户,0 过期用户,1 付费用户,2 全体用户
+            List<String> emails = new ArrayList<>();
+            switch (announcement.getUserFilter()) {
+                case 0:
+                    emails = userService.list(new QueryWrapper<User>().eq("class", 0)).stream().map(User::getEmail).collect(Collectors.toList());
+                    break;
+                case 1:
+                    emails = userService.list(new QueryWrapper<User>().gt("class", 0)).stream().map(User::getEmail).collect(Collectors.toList());
+                    break;
+                case 2:
+                    emails = userService.list().stream().map(User::getEmail).collect(Collectors.toList());
+                    break;
+            }
+            Long lSize = redisService.lSize("panel::emails");
+            if (lSize == 0) {
+                emails.forEach(email -> {
+                    redisService.lPush("panel::emails", email, 86400);
+                });
+                for (int i = 0; i < 10; i++) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            long start = new Date().getTime() / 1000;
+                            while (redisService.lSize("panel::emails") != 0) {
+                                String email = (String) redisService.lLeftPop("panel::emails");
+                                EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, email);
+                            }
+                            long end = new Date().getTime() / 1000;
+                            log.info("邮件发送完成,总耗时: {}秒", end - start);
+                            // 给管理员发送失败的email
+                            while (redisService.lSize("panel::failedEmails") != 0) {
+                                List<String> failedEmails = (List) redisService.lRange("panel::failedEmails", 0, -1);
+                                redisService.del("panel::failedEmails");
+                                List<String> admins = userService.list(new QueryWrapper<User>().eq("is_admin", 1)).stream().map(User::getEmail).collect(Collectors.toList());
+                                admins.forEach(admin -> {
+                                    EmailUtil.sendEmail("Failed to send email ", failedEmails.toString(), false, admin);
+                                });
+                            }
+                        }
+                    }).start();
+                }
+            } else {
+                for (int i = 0; i < 10; i++) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            long start = new Date().getTime() / 1000;
+                            while (redisService.lSize("panel::emails") != 0) {
+                                String email = (String) redisService.lLeftPop("panel::emails");
+                                EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, email);
+                            }
+                            long end = new Date().getTime() / 1000;
+                            log.info("邮件发送完成,总耗时: {}秒", end - start);
+                            // 给管理员发送失败的email
+                            while (redisService.lSize("panel::failedEmails") != 0) {
+                                List<String> failedEmails = (List) redisService.lRange("panel::failedEmails", 0, -1);
+                                redisService.del("panel::failedEmails");
+                                List<String> admins = userService.list(new QueryWrapper<User>().eq("is_admin", 1)).stream().map(User::getEmail).collect(Collectors.toList());
+                                admins.forEach(admin -> {
+                                    EmailUtil.sendEmail("Failed to send email ", failedEmails.toString(), false, admin);
+                                });
+                            }
+                        }
+                    }).start();
+                }
+                lock.unlock();
+                return Result.error().message("邮件队列任务未完成, 正在尝试继续发送, 请稍后再试").messageEnglish("Redis Queue is busy, Try again later");
+            }
         }
+        lock.unlock();
         if (saveFlag) {
             return Result.ok().message("操作成功").messageEnglish("Successfully");
         } else {

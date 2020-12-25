@@ -201,6 +201,11 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public Object lLeftPop(String key) {
+        return redisTemplate.opsForList().leftPop(key);
+    }
+
+    @Override
     public Long deleteByKeys(String key) {
         Set<String> keys = redisTemplate.keys(key);
         return redisTemplate.delete(keys);
