@@ -682,6 +682,9 @@ public class AdminServiceImpl implements AdminService {
                 emails.forEach(email -> {
                     redisService.lPush("panel::emails", email, 86400);
                 });
+                // 存储要发信的内容
+                redisService.set("panel::emailTitle", announcement.getTitle());
+                redisService.set("panel::emailContent", announcement.getHtml());
                 for (int i = 0; i < 10; i++) {
                     new Thread(new Runnable() {
                         @Override
@@ -691,6 +694,8 @@ public class AdminServiceImpl implements AdminService {
                                 String email = (String) redisService.lLeftPop("panel::emails");
                                 EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, email);
                             }
+                            redisService.del("panel::emailTitle");
+                            redisService.del("panel::emailContent");
                             long end = new Date().getTime() / 1000;
                             log.info("邮件发送完成,总耗时: {}秒", end - start);
                             // 给管理员发送失败的email
@@ -710,11 +715,16 @@ public class AdminServiceImpl implements AdminService {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
+                            // 获取要发信的内容
+                            String title = (String) redisService.get("panel::emailTitle");
+                            String content = (String) redisService.get("panel::emailContent");
                             long start = new Date().getTime() / 1000;
                             while (redisService.lSize("panel::emails") != 0) {
                                 String email = (String) redisService.lLeftPop("panel::emails");
-                                EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, email);
+                                EmailUtil.sendEmail(title, content, true, email);
                             }
+                            redisService.del("panel::emailTitle");
+                            redisService.del("panel::emailContent");
                             long end = new Date().getTime() / 1000;
                             log.info("邮件发送完成,总耗时: {}秒", end - start);
                             // 给管理员发送失败的email
