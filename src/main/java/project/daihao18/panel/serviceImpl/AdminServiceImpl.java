@@ -573,7 +573,7 @@ public class AdminServiceImpl implements AdminService {
         plan.setTransferEnable(FlowSizeConverterUtil.GbToBytes(plan.getTransferEnableGb()));
         plan.setPackagee(FlowSizeConverterUtil.GbToBytes(plan.getPackageGb()));
         if (planService.save(plan)) {
-            redisService.deleteByKeys("panel::plan::*");
+            // redisService.deleteByKeys("panel::plan::*");
             return Result.ok().message("新增成功").messageEnglish("Add Successfully");
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
@@ -586,7 +586,7 @@ public class AdminServiceImpl implements AdminService {
         plan.setTransferEnable(FlowSizeConverterUtil.GbToBytes(plan.getTransferEnableGb()));
         plan.setPackagee(FlowSizeConverterUtil.GbToBytes(plan.getPackageGb()));
         if (planService.updateById(plan)) {
-            redisService.deleteByKeys("panel::plan::*");
+            // redisService.deleteByKeys("panel::plan::*");
             return Result.ok().message("修改成功").messageEnglish("Update Successfully");
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
@@ -597,7 +597,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public Result deletePlanById(Integer id) {
         if (planService.removeById(id)) {
-            redisService.deleteByKeys("panel::plan::*");
+            // redisService.deleteByKeys("panel::plan::*");
             return Result.ok().message("删除成功").messageEnglish("Delete Successfully");
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);

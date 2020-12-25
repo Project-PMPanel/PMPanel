@@ -73,7 +73,7 @@ public class PlanServiceImpl extends ServiceImpl<PlanMapper, Plan> implements Pl
     }
 
     @Override
-    @Cacheable(cacheNames = "panel::plan::plans", key = "#pageNo+'-'+#pageSize", unless = "#result == null")
+    // @Cacheable(cacheNames = "panel::plan::plans", key = "#pageNo+'-'+#pageSize", unless = "#result == null")
     public Result getPlan(Integer pageNo, Integer pageSize) {
         IPage<Plan> page = new Page<>(pageNo, pageSize);
         QueryWrapper<Plan> planQueryWrapper = new QueryWrapper<>();
