@@ -78,6 +78,15 @@ public class AdminController {
     }
 
     /**
+     * 获取客户端配置
+     * @return
+     */
+    @GetMapping("/getClientConfig")
+    public Result getClientConfig() {
+        return adminService.getClientConfig();
+    }
+
+    /**
      * 更新配置
      * @param config
      * @return

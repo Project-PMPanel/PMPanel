@@ -2,14 +2,9 @@ package project.daihao18.panel.entity;
 
 import lombok.Data;
 import lombok.ToString;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import project.daihao18.panel.common.configs.YamlPropertyLoaderFactory;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,8 +17,6 @@ import java.util.Map;
 @Data
 @ToString
 @Component
-// @PropertySource(value = "classpath:client.yaml", factory = YamlPropertyLoaderFactory.class)
-// @ConfigurationProperties(prefix = "client")
 public class Client implements Serializable {
 
     // API 地址
@@ -73,11 +66,11 @@ public class Client implements Serializable {
 
     // 其他设置
 
-    private Map<String, Object> bootstrap = new HashMap<>();
+    private Map<String, Object> bootstrap;
 
-    private List<Map<String, Object>> nav = new ArrayList<>();
+    private List<Map<String, Object>> nav;
 
-    private Map<String, Object> levelDesc = new HashMap<>();
+    private Map<String, Object> levelDesc;
 
     private Boolean holdConnect;
 

@@ -26,6 +26,8 @@ public interface AdminService {
 
     Result getOtherConfig();
 
+    Result getClientConfig();
+
     Result updateValueByName(Config config) throws AlipayApiException;
 
     Result getAllNodes();

@@ -204,6 +204,18 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public Result getClientConfig() {
+        Map<String, Object> clientConfig;
+        String config = configService.getValueByName("clientConfig");
+        if (ObjectUtil.isNotEmpty(config)) {
+            clientConfig = JSONUtil.toBean(config, Map.class);
+        } else {
+            clientConfig = new HashMap<>();
+        }
+        return Result.ok().data("clientConfig", clientConfig);
+    }
+
+    @Override
     @Transactional
     public Result updateValueByName(Config config) throws AlipayApiException {
         if (configService.updateValueByName(config.getName(), config.getValue())) {

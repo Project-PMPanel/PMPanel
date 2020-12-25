@@ -8,7 +8,6 @@ import cn.hutool.crypto.symmetric.RC4;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import project.daihao18.panel.common.utils.IpUtil;
@@ -16,6 +15,7 @@ import project.daihao18.panel.common.utils.JwtTokenUtil;
 import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.*;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,11 +32,10 @@ import java.util.*;
 @RequestMapping("/v1")
 public class ClientController {
 
-    @Value("${client.enable}")
-    private Boolean enable;
+    private Client client;
 
     @Autowired
-    private Client client;
+    private ConfigService configService;
 
     @Autowired
     private UserService userService;
@@ -56,11 +55,22 @@ public class ClientController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @PostConstruct
+    private void initData() {
+        getData();
+    }
+
+    protected void getData() {
+        String config = configService.getValueByName("clientConfig");
+        if (ObjectUtil.isNotEmpty(config)) {
+            client = JSONUtil.toBean(config, Client.class);
+        } else {
+            client = null;
+        }
+    }
+
     @PostMapping("/login")
     public String login(HttpServletRequest request, HttpServletResponse response, @RequestBody Map<String, String> map) {
-        if (!enable) {
-            return badResp("定制客户端维护中...请临时使用开源客户端clash");
-        }
         // 查登录次数
         String requestIP = IpUtil.getIpAddr(request);
         Date now = new Date();
@@ -172,11 +182,13 @@ public class ClientController {
 
     @GetMapping("/init")
     public String init() {
+        getData();
         return client.getBaseUrl();
     }
 
     @GetMapping("/broadcast")
     public String broadcast() {
+        getData();
         Map<String, Object> data = new HashMap<>();
         data.put("title", ObjectUtil.isNotEmpty(client.getTitle()) ? UnicodeUtil.toUnicode(new String(client.getTitle().getBytes(StandardCharsets.UTF_8))) : false);
         data.put("content", ObjectUtil.isNotEmpty(client.getContent()) ? UnicodeUtil.toUnicode(new String(client.getContent().getBytes(StandardCharsets.UTF_8))) : false);
@@ -193,6 +205,7 @@ public class ClientController {
 
     @GetMapping("/update")
     public String update() {
+        getData();
         Map<String, Object> data = new HashMap<>();
         data.put("version_code", ObjectUtil.isNotEmpty(client.getVersionCode()) ? client.getVersionCode() : 0);
         data.put("description", ObjectUtil.isNotEmpty(client.getDescription()) ? client.getDescription() : "");
@@ -202,6 +215,7 @@ public class ClientController {
 
     @GetMapping("/config")
     public String config(HttpServletRequest request, HttpServletResponse response) {
+        getData();
         Map<String, Object> map = new HashMap<>();
         map.put("online", getOnline(request, response));
         map.put("bootstrap", client.getBootstrap());
@@ -259,6 +273,7 @@ public class ClientController {
     }
 
     protected Map<String, Object> getUserInfo(User user) {
+        getData();
         Map<String, Object> map = new HashMap<>();
         map.put("username", user.getEmail());
         map.put("true_name", user.getEmail());
@@ -308,6 +323,7 @@ public class ClientController {
         if (ObjectUtil.isEmpty(user)) {
             return unAuth();
         }
+        getData();
         Map<String, Object> map = new HashMap<>();
         if (client.getPcAnnoShow()) {
             map.put("show", true);
@@ -325,6 +341,7 @@ public class ClientController {
         if (ObjectUtil.isEmpty(user)) {
             return unAuth();
         }
+        getData();
         String latest = client.getPcUpdateVersionCode();
         String curVersion = request.getParameter("curVersion");
         Map<String, Object> map = new HashMap<>();
@@ -421,71 +438,4 @@ public class ClientController {
         }
         return user;
     }
-
-    /**
-     * 已弃用
-
-     @GetMapping("/link") public String subLink(HttpServletRequest request, HttpServletResponse response) {
-     User user = AuthUser(request, response);
-     if (ObjectUtil.isEmpty(user)) {
-     return unAuth();
-     }
-     response.addHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-     // 获取clash的所有订阅节点
-     String link = user.getSubsLink().split("\\/")[5];
-     List<Map<String, Object>> nodeList = new ArrayList<>();
-     List<Map<String, Object>> ssList = subService.getSSList(link);
-     List<Map<String, Object>> v2rayList = subService.getV2rayList(link);
-     nodeList.addAll(ssList);
-     nodeList.addAll(v2rayList);
-     // 遍历处理nodes
-     List<String> nodeLink = new ArrayList<>();
-     nodeList.forEach(node -> {
-     Map<String, Object> map = new HashMap<>();
-     if ("vmess".equals(node.get("type"))) {
-     map.put("v", 2);
-     map.put("ps", node.get("remark"));
-     map.put("add", node.get("add"));
-     map.put("port", node.get("port"));
-     map.put("id", node.get("id"));
-     map.put("aid", node.get("aid"));
-     map.put("net", node.get("net"));
-     map.put("type", node.get("headerType"));
-     map.put("host", node.get("host"));
-     map.put("path", node.get("path"));
-     map.put("tls", node.get("tls"));
-     String s = "vmess://" + Base64.getUrlEncoder().encodeToString(JSONUtil.toJsonStr(map).getBytes());
-     nodeLink.add(s);
-     }
-     if (node.get("type").toString().startsWith("simple_obfs")) {
-     // ss单端口
-     String s =
-     Base64.getUrlEncoder().encodeToString((node.get("method") + ":" + node.get("passwd")).getBytes(StandardCharsets.UTF_8)) + "@" +
-     node.get("address") + ":" +
-     node.get("port") +
-     "/?plugin=obfs-local";
-     String suffix = null;
-     try {
-     suffix = URLEncoder.encode(";obfs=" + node.get("obfs") + ";" +
-     "obfs-host=" + node.get("obfs_param"), "UTF-8") + "&group=" + Base64.getUrlEncoder().encodeToString(node.get("group").toString().getBytes()) + "#" + URLEncoder.encode(node.get("remark").toString(), "UTF-8");
-     } catch (UnsupportedEncodingException e) {
-     e.printStackTrace();
-     }
-     s = "ss://" + s + suffix + "\n";
-     nodeLink.add(s);
-     }
-     });
-     Map<String, Object> info = new HashMap<>();
-     info.put("link", nodeLink);
-     info.put("md5", DigestUtil.md5Hex(JSONUtil.toJsonStr(nodeLink), StandardCharsets.UTF_8));
-     info.put("rep", UnicodeUtil.toUnicode("/(香港|美国|日本|中国|俄罗斯|韩国|英国|新加坡|马来西亚|台湾|加拿大|菲律宾|德国)/"));
-     info.put("default_rule", 0);
-     return normalResp("获取成功", info);
-     }
-
-
-
-
-      * */
-
 }
