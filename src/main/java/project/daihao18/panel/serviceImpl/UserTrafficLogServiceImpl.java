@@ -11,6 +11,8 @@ import project.daihao18.panel.mapper.UserTrafficLogMapper;
 import project.daihao18.panel.service.UserTrafficLogService;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName: UserTrafficLogServiceImpl
@@ -40,5 +42,16 @@ public class UserTrafficLogServiceImpl extends ServiceImpl<UserTrafficLogMapper,
         if (this.remove(userTrafficLogQueryWrapper)) {
             log.info("用户流量日志清理完成");
         }
+    }
+
+    @Override
+    public List<Map<String, Object>> getYesterdayTraffic() {
+        Date now = new Date();
+        QueryWrapper<UserTrafficLog> userTrafficLogQueryWrapper = new QueryWrapper<>();
+        userTrafficLogQueryWrapper
+                .select("user_id", "sum(u * rate) as u", "sum(d * rate) as d")
+                .gt("log_time", DateUtil.beginOfDay(DateUtil.offsetDay(now, -1)).getTime() / 1000)
+                .groupBy("user_id");
+        return this.listMaps(userTrafficLogQueryWrapper);
     }
 }

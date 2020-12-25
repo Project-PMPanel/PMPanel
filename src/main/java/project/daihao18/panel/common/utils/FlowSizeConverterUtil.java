@@ -2,6 +2,8 @@ package project.daihao18.panel.common.utils;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
+
 /**
  * @ClassName: FlowSizeConverterUtil
  * @Description:
@@ -50,5 +52,37 @@ public class FlowSizeConverterUtil {
         } else {//GB
             return String.format("%.2f", bytes.doubleValue() / (1024 * 1024 * 1024)) + "GB";
         }
+    }
+
+    /**
+     * 科学计数法
+     *
+     * @param numberStr
+     * @return
+     */
+    public static String convertNumber(String numberStr) {
+        BigDecimal resultNumber = new BigDecimal("1");
+        // 是否为科学计数法
+        if (numberStr.indexOf("E") != -1) {
+            int frontLeng = numberStr.indexOf("E");
+            String frontNumber = numberStr.substring(0, frontLeng);
+            BigDecimal front = new BigDecimal(frontNumber);
+            int bankLeng = numberStr.indexOf("+");
+            String bankNumber = numberStr.substring(bankLeng + 1, numberStr.length());
+            int bankint = Integer.valueOf(bankNumber.split("E")[1]);
+            BigDecimal base = new BigDecimal("10");
+            BigDecimal bank = new BigDecimal("1");
+            for (int k = 0; k < bankint; k++) {
+                bank = bank.multiply(base);
+            }
+            resultNumber = front.multiply(bank);
+        } else {
+            resultNumber = new BigDecimal(numberStr);
+        }
+        // 截取小数点，前面的数字
+        String resultStr = String.valueOf(resultNumber);
+        int point = resultStr.indexOf(".");
+        resultStr = resultStr.substring(0, point);
+        return resultStr;
     }
 }

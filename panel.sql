@@ -492,6 +492,20 @@ CREATE TABLE `withdraw` (
   CONSTRAINT `withdraw_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ----------------------------
+-- Table structure for user_monthly_traffic
+-- ----------------------------
+DROP TABLE IF EXISTS `user_monthly_traffic`;
+CREATE TABLE `user_monthly_traffic` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NULL,
+  `date` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `u` bigint NULL DEFAULT 0,
+  `d` bigint NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `user_monthly_traffic_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (1, 'siteName', 'PMPanel');

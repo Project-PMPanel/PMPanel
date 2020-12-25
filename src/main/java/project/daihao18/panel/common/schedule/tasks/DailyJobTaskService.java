@@ -9,12 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.entity.Order;
 import project.daihao18.panel.entity.User;
+import project.daihao18.panel.entity.UserMonthlyTraffic;
 import project.daihao18.panel.service.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @ClassName: DailyJobTaskService
@@ -56,6 +58,9 @@ public class DailyJobTaskService {
     @Autowired
     private RedisService redisService;
 
+    @Autowired
+    private UserMonthlyTrafficService userMonthlyTrafficService;
+
     /**
      * 同步用户流量/重置流量
      */
@@ -86,6 +91,18 @@ public class DailyJobTaskService {
                 .setSql("p=u+d")
                 .eq("is_multi_user", 0);
         userService.update(userUpdateWrapper);
+        // 将每个用户昨日流量同步到userMonthlyTraffic表
+        List<Map<String, Object>> traffics = userTrafficLogService.getYesterdayTraffic();
+        List<UserMonthlyTraffic> list = new ArrayList<>();
+        traffics.forEach(item -> {
+            UserMonthlyTraffic userMonthlyTraffic = new UserMonthlyTraffic();
+            userMonthlyTraffic.setUserId((Integer) item.get("user_id"));
+            userMonthlyTraffic.setU(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(item.get("u")))));
+            userMonthlyTraffic.setD(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(item.get("d")))));
+            userMonthlyTraffic.setDate(DateUtil.endOfDay(DateUtil.offsetDay(new Date(), -1)));
+            list.add(userMonthlyTraffic);
+        });
+        userMonthlyTrafficService.saveBatch(list);
     }
 
     /**
@@ -98,6 +115,7 @@ public class DailyJobTaskService {
         if (days <= 0) {
             // 清空上个月所有用户流量日志
             userTrafficLogService.monthlyJobTask();
+            userMonthlyTrafficService.monthlyJobTask();
         }
         // 1.使过期status=1的套餐和流量包失效
         orderService.expiredFinishedOrder();
