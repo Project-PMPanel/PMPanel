@@ -15,6 +15,7 @@ public enum ResultCodeEnum {
     PARAM_ERROR(false, 4001, "参数错误", "Params error"),
     HTTP_CLIENT_ERROR(false, 4002, "http请求错误", "Http request error"),
     UNAUTHORIZED_REQUEST_ERROR(false, 4003, "非法越权访问", "Unauthorized request"),
+    USERNAME_PASSWORD_ERROR(false, 4004, "账户或密码错误", "Username or password error"),
     // 服务端异常
     UNKNOWN_ERROR(false, 5001, "未知错误", "Unknown error"),
     NULL_POINT(false, 5002, "空指针异常", "Null point exception"),
