@@ -1,6 +1,7 @@
 package project.daihao18.panel.common.schedule.tasks;
 
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import project.daihao18.panel.entity.UserMonthlyTraffic;
 import project.daihao18.panel.service.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -94,12 +97,14 @@ public class DailyJobTaskService {
         // 将每个用户昨日流量同步到userMonthlyTraffic表
         List<Map<String, Object>> traffics = userTrafficLogService.getYesterdayTraffic();
         List<UserMonthlyTraffic> list = new ArrayList<>();
+        ZonedDateTime zdt = LocalDateTimeUtil.of(DateUtil.offsetDay(new Date(), -1)).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault());
+        Date yesterday = Date.from(zdt.toInstant());
         traffics.forEach(item -> {
             UserMonthlyTraffic userMonthlyTraffic = new UserMonthlyTraffic();
             userMonthlyTraffic.setUserId((Integer) item.get("user_id"));
             userMonthlyTraffic.setU(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(item.get("u")))));
             userMonthlyTraffic.setD(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(item.get("d")))));
-            userMonthlyTraffic.setDate(DateUtil.endOfDay(DateUtil.offsetDay(new Date(), -1)));
+            userMonthlyTraffic.setDate(yesterday);
             list.add(userMonthlyTraffic);
         });
         userMonthlyTrafficService.saveBatch(list);
