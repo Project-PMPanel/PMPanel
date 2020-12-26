@@ -2,6 +2,7 @@ package project.daihao18.panel.controller;
 
 import com.alipay.api.AlipayApiException;
 import lombok.extern.slf4j.Slf4j;
+import net.ipip.ipdb.IPFormatException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import project.daihao18.panel.common.response.Result;
@@ -10,6 +11,7 @@ import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.AdminService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -125,8 +127,8 @@ public class AdminController {
      * @return
      */
     @GetMapping("/node/{nodeId}")
-    public Result getNodeInfoByNodeId(@PathVariable Integer nodeId) {
-        return adminService.getNodeInfoByNodeId(nodeId);
+    public Result getNodeInfoByNodeId(HttpServletRequest request, @PathVariable Integer nodeId) throws IOException, IPFormatException {
+        return adminService.getNodeInfoByNodeId(request, nodeId);
     }
 
     /**

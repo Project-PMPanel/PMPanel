@@ -8,8 +8,13 @@ import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
+import net.ipip.ipdb.City;
+import net.ipip.ipdb.CityInfo;
+import net.ipip.ipdb.IPFormatException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +29,7 @@ import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -261,21 +267,47 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Result getNodeInfoByNodeId(Integer nodeId) {
+    public Result getNodeInfoByNodeId(HttpServletRequest request, Integer nodeId) throws IOException, IPFormatException {
         SsNode node = ssNodeService.getById(nodeId);
-
+        int pageNo =  Integer.parseInt(request.getParameter("pageNo"));
+        int pageSize =  Integer.parseInt(request.getParameter("pageSize"));
+        IPage<AliveIp> page = new Page<>(pageNo, pageSize);
         QueryWrapper<AliveIp> aliveIpQueryWrapper = new QueryWrapper<>();
         aliveIpQueryWrapper.eq("nodeid", node.getId());
-        List<AliveIp> aliveIps = aliveIpService.list(aliveIpQueryWrapper);
+        page = aliveIpService.page(page, aliveIpQueryWrapper);
+        List<AliveIp> aliveIps = page.getRecords();
+
         List<Map<String, Object>> onlineIps = new ArrayList<>();
+        ClassPathResource classPathResource = new ClassPathResource("qqwry.ipdb");
+        City db = new City(classPathResource.getInputStream());
         for (AliveIp aliveIp : aliveIps) {
             Map<String, Object> userMapIp = new HashMap<>();
             userMapIp.put("userId", aliveIp.getUserid());
             userMapIp.put("ip", aliveIp.getIp());
+            userMapIp.put("time", DateUtil.date(aliveIp.getDatetime().longValue() * 1000).toJdkDate());
+            // 查ip归属
+            CityInfo info = db.findInfo(aliveIp.getIp(), "CN");
+            if (ObjectUtil.isNotEmpty(info.getCountryName())) {
+                userMapIp.put("country", info.getCountryName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getRegionName())) {
+                userMapIp.put("region", info.getRegionName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getCityName())) {
+                userMapIp.put("city", info.getCityName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getIspDomain())) {
+                userMapIp.put("isp", info.getIspDomain());
+            }
             onlineIps.add(userMapIp);
         }
-        node.setOnlineIps(onlineIps);
-        return Result.ok().data("info", node);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("data", onlineIps);
+        map.put("pageNo", page.getCurrent());
+        map.put("totalCount", page.getTotal());
+
+        return Result.ok().data("data", map);
     }
 
     @Override

@@ -1,10 +1,12 @@
 package project.daihao18.panel.service;
 
 import com.alipay.api.AlipayApiException;
+import net.ipip.ipdb.IPFormatException;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.entity.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -34,7 +36,7 @@ public interface AdminService {
 
     Result getNode(HttpServletRequest request);
 
-    Result getNodeInfoByNodeId(Integer nodeId);
+    Result getNodeInfoByNodeId(HttpServletRequest request, Integer nodeId) throws IOException, IPFormatException;
 
     Result addNode(SsNode ssNode);
 
