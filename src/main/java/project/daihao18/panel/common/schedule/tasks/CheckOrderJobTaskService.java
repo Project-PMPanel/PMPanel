@@ -108,30 +108,28 @@ public class CheckOrderJobTaskService {
                             if (ObjectUtil.isNotEmpty(user.getParentId())) {
                                 User inviteUser = userService.getById(user.getParentId());
                                 // 用户有等级的话,给返利
-                                if (inviteUser.getClazz() > 0) {
+                                if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
                                     // 判断是循环返利还是首次返利
-                                    if (ObjectUtil.isNotEmpty(inviteUser)) {
-                                        if (inviteUser.getInviteCycleEnable()) {
+                                    if (inviteUser.getInviteCycleEnable()) {
+                                        userService.handleCommission(inviteUser.getId(), existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    } else {
+                                        // 首次返利,查该用户是否第一次充值
+                                        int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                                        if (count == 0) {
+                                            // 首次
                                             userService.handleCommission(inviteUser.getId(), existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                        } else {
-                                            // 首次返利,查该用户是否第一次充值
-                                            int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
-                                            if (count == 0) {
-                                                // 首次
-                                                userService.handleCommission(inviteUser.getId(), existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                            }
                                         }
-                                        // 给邀请人新增返利明细
-                                        Funds inviteFund = new Funds();
-                                        inviteFund.setUserId(inviteUser.getId());
-                                        inviteFund.setPrice(existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                        inviteFund.setTime(now);
-                                        inviteFund.setRelatedOrderId(existOrder.getOrderId());
-                                        inviteFund.setContent("佣金");
-                                        inviteFund.setContentEnglish("Commission");
-                                        fundsService.save(inviteFund);
-                                        log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
                                     }
+                                    // 给邀请人新增返利明细
+                                    Funds inviteFund = new Funds();
+                                    inviteFund.setUserId(inviteUser.getId());
+                                    inviteFund.setPrice(existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    inviteFund.setTime(now);
+                                    inviteFund.setRelatedOrderId(existOrder.getOrderId());
+                                    inviteFund.setContent("佣金");
+                                    inviteFund.setContentEnglish("Commission");
+                                    fundsService.save(inviteFund);
+                                    log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
                                 }
                             }
                         }
