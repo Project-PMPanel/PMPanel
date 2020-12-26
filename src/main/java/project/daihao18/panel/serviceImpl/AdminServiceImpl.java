@@ -105,8 +105,8 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public Result getDashboardInfo() {
         Map<String, Object> map = new HashMap<>();
-        // TODO 获取待办工单数量
-        map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().in("status", 0, 2).isNull("parent_id")));
+        // 获取待办工单数量
+        map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().in("status", 0, 1).isNull("parent_id")));
         // 获取在线节点信息
         map.put("nodeCount", ssNodeService.count());
         map.put("offlineCount", ssNodeService.count(new QueryWrapper<SsNode>().lt("node_heartbeat", new Date().getTime() / 1000 - 120)));
