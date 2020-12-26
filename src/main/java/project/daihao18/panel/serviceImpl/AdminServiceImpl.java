@@ -70,6 +70,9 @@ public class AdminServiceImpl implements AdminService {
     private PlanService planService;
 
     @Autowired
+    private TicketService ticketService;
+
+    @Autowired
     private TutorialService tutorialService;
 
     @Autowired
@@ -97,6 +100,7 @@ public class AdminServiceImpl implements AdminService {
     public Result getDashboardInfo() {
         Map<String, Object> map = new HashMap<>();
         // TODO 获取待办工单数量
+        map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().in("status", 0, 2).isNull("parent_id")));
         // 获取在线节点信息
         map.put("nodeCount", ssNodeService.count());
         map.put("offlineCount", ssNodeService.count(new QueryWrapper<SsNode>().lt("node_heartbeat", new Date().getTime() / 1000 - 120)));
@@ -614,6 +618,61 @@ public class AdminServiceImpl implements AdminService {
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
+    }
+
+    @Override
+    public Result getTicket(HttpServletRequest request) {
+        return Result.ok().data("tickets", ticketService.getTicketByPage(Integer.parseInt(request.getParameter("pageNo")), Integer.parseInt(request.getParameter("pageSize"))));
+    }
+
+    @Override
+    @Transactional
+    public Result saveTicket(Integer userId, Ticket ticket, String type) {
+        ticket.setUserId(userId);
+        if ("reply".equals(type)) {
+            // 将该ticket的父ticket状态置0
+            UpdateWrapper<Ticket> ticketUpdateWrapper = new UpdateWrapper<>();
+            ticketUpdateWrapper
+                    .set("status", 1)
+                    .eq("id", ticket.getParentId());
+            ticketService.update(ticketUpdateWrapper);
+        }
+        return ticketService.save(ticket) ? Result.ok().message("回复成功").messageEnglish("Reply successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+    }
+
+    @Override
+    @Transactional
+    public Result deleteTicketById(Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        if (ObjectUtil.isNotEmpty(ticket)) {
+            return ticketService.removeById(id) ? Result.ok().message("删除成功").messageEnglish("Delete successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
+        return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+    }
+
+    @Override
+    public Result getTicketById(Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        List<Ticket> list = ticketService.getTicketById(id);
+        List<Ticket> tickets = new ArrayList<>();
+        tickets.add(ticket);
+        tickets.addAll(list);
+        return Result.ok().data("tickets", tickets);
+    }
+
+    @Override
+    @Transactional
+    public Result closeTicket(Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        if (ticket.getStatus() == 2) {
+            return Result.error().message("该工单已结单").messageEnglish("The ticket has closed");
+        }
+        UpdateWrapper<Ticket> ticketUpdateWrapper = new UpdateWrapper<>();
+        ticketUpdateWrapper
+                .set("status", 2)
+                .eq("id", id)
+                .in("status", 0, 1);
+        return ticketService.update(ticketUpdateWrapper) ? Result.ok().message("已关闭工单").messageEnglish("The ticket closed successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
     @Override

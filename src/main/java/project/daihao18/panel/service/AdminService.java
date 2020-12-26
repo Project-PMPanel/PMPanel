@@ -76,6 +76,16 @@ public interface AdminService {
 
     Result deletePlanById(Integer id);
 
+    Result getTicket(HttpServletRequest request);
+
+    Result saveTicket(Integer userId, Ticket ticket, String type);
+
+    Result deleteTicketById(Integer id);
+
+    Result getTicketById(Integer id);
+
+    Result closeTicket(Integer id);
+
     Result getTutorial(HttpServletRequest request);
 
     Result addTutorial(Tutorial tutorial);

@@ -90,6 +90,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private Alipay alipay;
 
     @Autowired
+    private TicketService ticketService;
+
+    @Autowired
     private FundsService fundsService;
 
     @Autowired
@@ -1161,6 +1164,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Result getTutorialsByType(String type) {
         List<Tutorial> tutorials = tutorialService.getTutorialsByType(type);
         return Result.ok().data("tutorials", tutorials);
+    }
+
+    @Override
+    public Result getTicket(HttpServletRequest request) {
+        Integer userId = JwtTokenUtil.getId(request);
+        return Result.ok().data("tickets", ticketService.getTicketByPage(userId, Integer.parseInt(request.getParameter("pageNo")), Integer.parseInt(request.getParameter("pageSize"))));
+    }
+
+    @Override
+    @Transactional
+    public Result saveTicket(Integer userId, Ticket ticket, String type) {
+        ticket.setUserId(userId);
+        if ("reply".equals(type)) {
+            // 将该ticket的父ticket状态置0
+            UpdateWrapper<Ticket> ticketUpdateWrapper = new UpdateWrapper<>();
+            ticketUpdateWrapper
+                    .set("status", 0)
+                    .eq("id", ticket.getParentId());
+            ticketService.update(ticketUpdateWrapper);
+        }
+        return ticketService.save(ticket) ? Result.ok().message("提交成功").messageEnglish("Submit successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+    }
+
+    @Override
+    @Transactional
+    public Result deleteTicketById(Integer userId, Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        if (ObjectUtil.isNotEmpty(ticket) && ticket.getUserId().equals(userId)) {
+            return ticketService.removeById(id) ? Result.ok().message("删除成功").messageEnglish("Delete successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
+        return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+    }
+
+    @Override
+    public Result getTicketById(Integer userId, Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        if (!ticket.getUserId().equals(userId)) {
+            return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
+        }
+        List<Ticket> list = ticketService.getTicketById(id);
+        List<Ticket> tickets = new ArrayList<>();
+        tickets.add(ticket);
+        tickets.addAll(list);
+        return Result.ok().data("tickets", tickets);
+    }
+
+    @Override
+    @Transactional
+    public Result closeTicket(Integer userId, Integer id) {
+        Ticket ticket = ticketService.getById(id);
+        if (!ticket.getUserId().equals(userId)) {
+            return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
+        }
+        if (ticket.getStatus() == 2) {
+            return Result.error().message("该工单已结单").messageEnglish("The ticket has closed");
+        }
+        UpdateWrapper<Ticket> ticketUpdateWrapper = new UpdateWrapper<>();
+        ticketUpdateWrapper
+                .set("status", 2)
+                .eq("id", id)
+                .in("status", 0, 1);
+        return ticketService.update(ticketUpdateWrapper) ? Result.ok().message("已关闭工单").messageEnglish("The ticket closed successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
     @Override

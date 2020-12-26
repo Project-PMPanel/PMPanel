@@ -281,6 +281,64 @@ public class UserController {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////   Ticket
+
+    /**
+     * 分页查询工单
+     * @param request
+     * @return
+     */
+    @GetMapping("/ticket")
+    public Result getTicket(HttpServletRequest request) {
+        return userService.getTicket(request);
+    }
+
+    /**
+     * 提交工单
+     * @param request
+     * @param ticket
+     * @param type
+     * @return
+     */
+    @PostMapping("/ticket/{type}")
+    public Result saveTicket(HttpServletRequest request, @RequestBody Ticket ticket, @PathVariable String type) {
+        return userService.saveTicket(JwtTokenUtil.getId(request), ticket, type);
+    }
+
+    /**
+     * 根据id删除工单
+     * @param request
+     * @param id
+     * @return
+     */
+    @DeleteMapping("/ticket/{id}")
+    public Result deleteTicketById(HttpServletRequest request, @PathVariable Integer id) {
+        return userService.deleteTicketById(JwtTokenUtil.getId(request), id);
+    }
+
+    /**
+     * 根据id获取工单详情
+     * @param request
+     * @param id
+     * @return
+     */
+    @GetMapping("/ticket/{id}")
+    public Result getTicketById(HttpServletRequest request, @PathVariable Integer id) {
+        return userService.getTicketById(JwtTokenUtil.getId(request), id);
+    }
+
+    /**
+     * 关闭工单
+     * @param request
+     * @param id
+     * @return
+     */
+    @PutMapping("/ticket/{id}")
+    public Result closeTicket(HttpServletRequest request, @PathVariable Integer id) {
+        return userService.closeTicket(JwtTokenUtil.getId(request), id);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Usercenter
 
     /**

@@ -506,6 +506,24 @@ CREATE TABLE `user_monthly_traffic` (
   CONSTRAINT `user_monthly_traffic_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- ----------------------------
+-- Table structure for ticket
+-- ----------------------------
+DROP TABLE IF EXISTS `ticket`;
+CREATE TABLE `ticket`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NULL,
+  `title` varchar(50) NULL DEFAULT '',
+  `content` text NULL,
+  `time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `parent_id` int NULL,
+  `status` int NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+);
+
+ALTER TABLE `ticket`
+ADD CONSTRAINT `ticket_parent_id` FOREIGN KEY (`parent_id`) REFERENCES `ticket` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO `panel`.`config`(`id`, `name`, `value`) VALUES (1, 'siteName', 'PMPanel');

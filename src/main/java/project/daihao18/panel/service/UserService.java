@@ -91,6 +91,16 @@ public interface UserService extends IService<User> {
 
     Result getTutorialsByType(String type);
 
+    Result getTicket(HttpServletRequest request);
+
+    Result saveTicket(Integer userId, Ticket ticket, String type);
+
+    Result deleteTicketById(Integer userId, Integer id);
+
+    Result getTicketById(Integer userId, Integer id);
+
+    Result closeTicket(Integer userId, Integer id);
+
     Result changePass(User user, User requestUser);
 
     Result changeEmail(String oldCheckCode, String newCheckCode, String oldEmail, String newEmail, Integer userId);

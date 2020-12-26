@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import project.daihao18.panel.common.response.Result;
+import project.daihao18.panel.common.utils.JwtTokenUtil;
 import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.AdminService;
 
@@ -332,6 +333,61 @@ public class AdminController {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////   Ticket
+
+    /**
+     * 分页查询工单
+     * @param request
+     * @return
+     */
+    @GetMapping("/ticket")
+    public Result getTicket(HttpServletRequest request) {
+        return adminService.getTicket(request);
+    }
+
+    /**
+     * 回复工单
+     * @param request
+     * @param ticket
+     * @param type
+     * @return
+     */
+    @PostMapping("/ticket/{type}")
+    public Result saveTicket(HttpServletRequest request, @RequestBody Ticket ticket, @PathVariable String type) {
+        return adminService.saveTicket(JwtTokenUtil.getId(request), ticket, type);
+    }
+
+    /**
+     * 根据id删除工单
+     * @param id
+     * @return
+     */
+    @DeleteMapping("/ticket/{id}")
+    public Result deleteTicketById(@PathVariable Integer id) {
+        return adminService.deleteTicketById(id);
+    }
+
+    /**
+     * 根据id获取工单详情
+     * @param id
+     * @return
+     */
+    @GetMapping("/ticket/{id}")
+    public Result getTicketById(@PathVariable Integer id) {
+        return adminService.getTicketById(id);
+    }
+
+    /**
+     * 关闭工单
+     * @param id
+     * @return
+     */
+    @PutMapping("/ticket/{id}")
+    public Result closeTicket(@PathVariable Integer id) {
+        return adminService.closeTicket(id);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Toturial
 
     /**
@@ -423,6 +479,11 @@ public class AdminController {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Commission
 
+    /**
+     * 分页查询返利明细
+     * @param request
+     * @return
+     */
     @GetMapping("/commission")
     public Result getCommission(HttpServletRequest request) {
         return adminService.getCommission(Integer.parseInt(request.getParameter("pageNo")), Integer.parseInt(request.getParameter("pageSize")));
@@ -431,11 +492,21 @@ public class AdminController {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Withdraw
 
+    /**
+     * 分页查询提现单
+     * @param request
+     * @return
+     */
     @GetMapping("/withdraw")
     public Result getWithdraw(HttpServletRequest request) {
         return adminService.getWithdraw(Integer.parseInt(request.getParameter("pageNo")), Integer.parseInt(request.getParameter("pageSize")));
     }
 
+    /**
+     * 确认提现到账
+     * @param id
+     * @return
+     */
     @GetMapping("/withdraw/{id}")
     public Result ackWithdrawById(@PathVariable Integer id) {
         return adminService.ackWithdrawById(id);
