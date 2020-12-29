@@ -78,7 +78,13 @@ public class DailyJobTaskService {
             this.dailyJob();
         }
         // 清理所有缓存
-        redisService.deleteByKeys("panel::*");
+        redisService.deleteByKeys("panel::config::*");
+        redisService.deleteByKeys("panel::node::*");
+        redisService.deleteByKeys("panel::detect::*");
+        redisService.deleteByKeys("panel::tutorial::*");
+        redisService.deleteByKeys("panel::plan::*");
+        redisService.deleteByKeys("panel::site::*");
+        redisService.deleteByKeys("panel::user::*");
         log.info("每日任务执行结束");
     }
 
