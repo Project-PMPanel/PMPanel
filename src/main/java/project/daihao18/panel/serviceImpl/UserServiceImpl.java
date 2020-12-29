@@ -140,7 +140,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // 流量转换
             user.setHasUsedGb(FlowSizeConverterUtil.BytesConverter(user.getU() + user.getD()));
             user.setTodayUsedGb(FlowSizeConverterUtil.BytesConverter(user.getU() + user.getD() - user.getP()));
-            user.setRemainingGb(FlowSizeConverterUtil.BytesConverter(user.getTransferEnable() - user.getU() - user.getD()));
+            if (user.getTransferEnable() - user.getU() - user.getD() < 0) {
+                user.setRemainingGb("0");
+            } else {
+                user.setRemainingGb(FlowSizeConverterUtil.BytesConverter(user.getTransferEnable() - user.getU() - user.getD()));
+            }
             user.setTransferEnableGb(FlowSizeConverterUtil.BytesToGb(user.getTransferEnable()));
             // 设置邀请链接
             String siteUrl = configService.getValueByName("siteUrl");
