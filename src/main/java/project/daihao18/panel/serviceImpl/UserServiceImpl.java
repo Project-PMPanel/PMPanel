@@ -1340,4 +1340,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         userQueryWrapper.gt("reg_date", beginDate);
         return this.count(userQueryWrapper);
     }
+
+    @Override
+    public List<User> getExpiredUser() {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .gt("class", 0)
+                .eq("enable", 1)
+                .ne("is_admin", 1)
+                .lt("expire_in", DateUtil.offsetDay(new Date(), 4));
+        return this.list(userQueryWrapper);
+    }
 }
