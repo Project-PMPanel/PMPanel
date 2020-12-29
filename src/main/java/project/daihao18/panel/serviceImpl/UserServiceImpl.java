@@ -113,7 +113,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (ObjectUtil.isEmpty(user)) {
             user = super.getById(id);
             if (ObjectUtil.isNotEmpty(user)) {
-                redisService.set("panel::user::" + id, user, 86400);
+                redisService.set("panel::user::" + id, user, 3600);
             }
         }
         return user;
