@@ -142,8 +142,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setTodayUsedGb(FlowSizeConverterUtil.BytesConverter(user.getU() + user.getD() - user.getP()));
             if (user.getTransferEnable() - user.getU() - user.getD() < 0) {
                 user.setRemainingGb("0");
+                // 流量小于30%发出提醒
+                user.setRemainTraffic(true);
             } else {
                 user.setRemainingGb(FlowSizeConverterUtil.BytesConverter(user.getTransferEnable() - user.getU() - user.getD()));
+                user.setRemainTraffic(user.getU() + user.getD() < user.getTransferEnable() * 0.3);
             }
             user.setTransferEnableGb(FlowSizeConverterUtil.BytesToGb(user.getTransferEnable()));
             // 设置邀请链接

@@ -203,6 +203,12 @@ public class User implements Serializable, UserDetails {
     // 以下字段非数据库字段
 
     /**
+     * 提醒流量
+     */
+    @TableField(exist = false)
+    private Boolean remainTraffic;
+
+    /**
      * 所有已用流量 u+d  gb
      */
     @TableField(exist = false)
