@@ -5,9 +5,14 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import project.daihao18.panel.common.exceptions.CustomException;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.common.response.ResultCodeEnum;
@@ -18,9 +23,7 @@ import project.daihao18.panel.service.UserService;
 import javax.annotation.PostConstruct;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @ClassName: EmailUtil
@@ -119,9 +122,11 @@ public class EmailUtil {
             switch (configService.getValueByName("notifyMailType")) {
                 case "smtp":
                     return sendEmailBySmtp(subject, text, isHtml, sendTo, 1);
+                case "postalAPI":
+                    return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 1);
             }
             return true;
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             // 发送失败,将该email放到redis邮件队列最后面
             redisService.lPush("panel::failedEmails", sendTo, 86400);
             log.info("邮件发送失败: {}, 失败原因: {}", sendTo, e.getMessage());
@@ -185,6 +190,69 @@ public class EmailUtil {
 
         jms.send(mimeMessage);
 
+        return true;
+    }
+
+    /**
+     * postalAPI发信
+     *
+     * @param subject
+     * @param text
+     * @param isHtml
+     * @param sendTo
+     * @param type
+     * @return
+     */
+    public static boolean sendEmailByPostalAPI(String subject, String text, boolean isHtml, String sendTo, int type) {
+        // sendTo是null
+        // 自己从redis查
+        List<String> emails = (List) redisService.lRange("panel::emails", 0, -1);
+        if (ObjectUtil.isEmpty(emails)) {
+            return false;
+        } else {
+            redisService.del("panel::emails");
+        }
+        // 查询config的mail配置
+        Map<String, Object> mailConfig = new HashMap<>();
+        switch (type) {
+            case 0:
+                // 0是验证码
+                mailConfig = JSONUtil.toBean(configService.getValueByName("mailConfig"), Map.class);
+                break;
+            case 1:
+                // 1是公告
+                mailConfig = JSONUtil.toBean(configService.getValueByName("notifyMailConfig"), Map.class);
+        }
+        int count = 0;
+        if (emails.size() % 50 == 0) {
+            count = emails.size() / 50;
+        } else {
+            count = emails.size() / 50 + 1;
+        }
+        for (int i = 0; i < count; i++) {
+            // 取出emails中50个元素
+            List<String> sendTO = new ArrayList<>();
+            for (int j = 0; j < 50; j++) {
+                if (ObjectUtil.isNotEmpty(emails)) {
+                    sendTO.add(emails.remove(0));
+                }
+            }
+            // 请求发信
+            RestTemplate restTemplate = new RestTemplate();
+            //设置类型
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.add("X-Server-API-Key", mailConfig.get("apiKey").toString());
+            Map<String, Object> map = new HashMap<>();
+            map.put("to", sendTO);
+            map.put("from", mailConfig.get("username").toString());
+            map.put("sender", mailConfig.get("username").toString());
+            map.put("subject", subject);
+            map.put("html_body", text);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(map, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(mailConfig.get("host").toString(), request, Map.class);
+            // log.info("{}", response);
+        }
         return true;
     }
 

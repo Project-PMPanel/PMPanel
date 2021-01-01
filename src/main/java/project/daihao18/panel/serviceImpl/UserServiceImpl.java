@@ -1348,7 +1348,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .gt("class", 0)
                 .eq("enable", 1)
                 .ne("is_admin", 1)
-                .lt("expire_in", DateUtil.offsetDay(new Date(), 4));
+                .lt("expire_in", DateUtil.offsetDay(new Date(), 3));
         return this.list(userQueryWrapper);
     }
 }

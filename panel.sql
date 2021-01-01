@@ -550,6 +550,7 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (203, 'alipayConfig', '{\"app
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (301, 'muSuffix', 'download.windowsupdate.com');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (302, 'userTrafficLogLimitDays', '3');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (401, 'clientConfig', '');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (402, 'renewMail', '<div style=\"text-align: center;background-color: #eaeaea;width: 80%;height: 80%;margin: auto;position: absolute;top: 0;left: 0;right: 0;bottom: 0;\">\n	<span style=\"display: block;text-align: center;color: #fff;font-size: 26px;height: 50px;line-height: 50px;background: #71c4ff;\">{siteName}</span>\n	<span style=\"display: block;margin-top: 20px;font-size: 20px\">\n		您收到此邮件是因为您在{siteName}的会员即将过期<br><br>\n		为保证服务正常使用,请尽快续费<br><br>\n		官网地址: <a href=\"{siteUrl}\">{siteUrl}</a>\n	</span>\n</div>');
 
 INSERT INTO `permission`(`id`, `role`, `permission`) VALUES (1, 'user', 'user');
 INSERT INTO `permission`(`id`, `role`, `permission`) VALUES (2, 'admin', 'admin');

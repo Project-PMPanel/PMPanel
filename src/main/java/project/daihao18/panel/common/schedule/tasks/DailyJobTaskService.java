@@ -2,20 +2,17 @@ package project.daihao18.panel.common.schedule.tasks;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import project.daihao18.panel.common.utils.EmailUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.entity.Order;
 import project.daihao18.panel.entity.User;
 import project.daihao18.panel.entity.UserMonthlyTraffic;
 import project.daihao18.panel.service.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -23,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @ClassName: DailyJobTaskService
@@ -98,45 +94,6 @@ public class DailyJobTaskService {
      */
     @Transactional
     public void dailyJob() {
-        // 如果是月末3天,提醒即将过期用户续费
-        int dayOfMonth = LocalDateTime.now().getDayOfMonth();
-        int currentMonthDays = LocalDate.now().lengthOfMonth();
-        if (dayOfMonth == currentMonthDays || dayOfMonth == currentMonthDays - 1 || dayOfMonth == currentMonthDays - 2) {
-            // 查到期时间<4天的用户
-            List<String> emails = userService.getExpiredUser().stream().map(User::getEmail).collect(Collectors.toList());
-            Long lSize = redisService.lSize("panel::emails");
-            if (lSize == 0) {
-                emails.forEach(email -> {
-                    redisService.lPush("panel::emails", email, 86400);
-                });
-                for (int i = 0; i < 10; i++) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // 获取要发信的内容
-                            String title = configService.getValueByName("siteName") + " - 过期提醒";
-                            String content = "您在 " + configService.getValueByName("siteName") + "的会员即将到期<br>为保证服务正常使用,请尽快续费<br>官网地址: <a href=\"" + configService.getValueByName("siteUrl") + "\">" + configService.getValueByName("siteUrl") + "</a>";
-                            long start = new Date().getTime();
-                            while (redisService.lSize("panel::emails") != 0) {
-                                String email = (String) redisService.lLeftPop("panel::emails");
-                                EmailUtil.sendEmail(title, content, true, email);
-                            }
-                            long end = new Date().getTime();
-                            log.info("邮件发送完成,总耗时: {}秒", (end - start) / 1000);
-                            // 给管理员发送失败的email
-                            while (redisService.lSize("panel::failedEmails") != 0) {
-                                List<String> failedEmails = (List) redisService.lRange("panel::failedEmails", 0, -1);
-                                redisService.del("panel::failedEmails");
-                                List<String> admins = userService.list(new QueryWrapper<User>().eq("is_admin", 1)).stream().map(User::getEmail).collect(Collectors.toList());
-                                admins.forEach(admin -> {
-                                    EmailUtil.sendEmail("Failed to send email ", failedEmails.toString(), false, admin);
-                                });
-                            }
-                        }
-                    }).start();
-                }
-            }
-        }
         // 执行每日任务
         // 开始同步用户昨日流量
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();

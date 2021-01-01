@@ -41,6 +41,11 @@ public class AdminController {
         return adminService.cleanRedisCache();
     }
 
+    @GetMapping("/notifyRenew")
+    public Result notifyRenew() {
+        return adminService.notifyRenew();
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Settings
 

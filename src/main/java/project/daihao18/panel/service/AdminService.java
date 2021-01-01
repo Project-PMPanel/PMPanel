@@ -20,6 +20,8 @@ public interface AdminService {
 
     Result cleanRedisCache();
 
+    Result notifyRenew();
+
     Result getSiteConfig();
 
     Result getRegisterConfig();
