@@ -116,6 +116,7 @@ public class Alipay {
                     .build();
             log.info("已设置为公钥模式");
         }
+        this.isCertMode = (Boolean) map.get("isCertMode");
         AliPayApiConfigKit.setThreadLocalAliPayApiConfig(aliPayApiConfig);
         alipayClient = AliPayApiConfigKit.getAliPayApiConfig().getAliPayClient();
     }
@@ -134,7 +135,6 @@ public class Alipay {
         Boolean web = (Boolean) alipayConfig.get("web");
         Boolean wap = (Boolean) alipayConfig.get("wap");
         Boolean f2f = (Boolean) alipayConfig.get("f2f");
-        this.isCertMode = AliPayApiConfigKit.getAliPayApiConfig().isCertModel();
         // 设置通知的domain(本站域名)
         order.setDomain(alipayConfig.get("domain").toString());
         // 获取订单标题
@@ -279,13 +279,22 @@ public class Alipay {
         request.setBizModel(model);
         // 设置alipayClient
         // 查2次
-        AlipayTradeQueryResponse execute = alipayClient.certificateExecute(request);
+        AlipayTradeQueryResponse execute = null;
+        if (isCertMode) {
+            execute = alipayClient.certificateExecute(request);
+        } else {
+            execute = alipayClient.execute(request);
+        }
         if (!"40004".equals(execute.getCode())) {
             return execute;
         } else {
             model.setOutTradeNo(order.getOrderId() + "_1");
             request.setBizModel(model);
-            execute = alipayClient.certificateExecute(request);
+            if (isCertMode) {
+                execute = alipayClient.certificateExecute(request);
+            } else {
+                execute = alipayClient.execute(request);
+            }
             if (!"40004".equals(execute.getCode())) {
                 return execute;
             }
