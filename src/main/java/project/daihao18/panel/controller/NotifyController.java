@@ -128,9 +128,9 @@ public class NotifyController {
                         User user = userService.getById(order.getUserId());
                         if (ObjectUtil.isNotEmpty(user.getParentId())) {
                             User inviteUser = userService.getById(user.getParentId());
-                            redisService.del("panel::user::" + inviteUser.getId());
                             // 用户有等级的话,给返利
                             if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
+                                redisService.del("panel::user::" + inviteUser.getId());
                                 // 判断是循环返利还是首次返利
                                 if (inviteUser.getInviteCycleEnable()) {
                                     userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
