@@ -382,7 +382,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional
-    public boolean cleanUserData() {
+    public boolean cleanExpiredUserData() {
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
         userUpdateWrapper
                 .set("u", 0)
@@ -391,7 +391,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .set("transfer_enable", 0)
                 .set("class", 0)
                 .set("node_connector", 0)
-                .set("node_speedlimit", 0);
+                .set("node_speedlimit", 0)
+                .lt("expire_in", new Date());
         return this.update(userUpdateWrapper);
     }
 

@@ -35,7 +35,7 @@ public interface UserService extends IService<User> {
 
     List<User> listNoMultiUser();
 
-    boolean cleanUserData();
+    boolean cleanExpiredUserData();
 
     Result refreshInfo(Integer userId);
 

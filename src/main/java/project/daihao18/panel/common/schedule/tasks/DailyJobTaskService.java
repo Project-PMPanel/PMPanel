@@ -132,8 +132,9 @@ public class DailyJobTaskService {
         // 1.使过期status=1的套餐和流量包失效
         orderService.expiredFinishedOrder();
         packageService.expiredFinishedPackageOrder();
-        // 2.清空所有用户数据, TODO 改为清空所有status=1的用户的流量清空
-        // userService.cleanUserData();
+
+        // 2.清空过期用户数据
+        userService.cleanExpiredUserData();
 
         // 3.查询未到期的status=1的订单,根据订单保存的套餐内容给已付费用户重置套餐
         List<Order> finishedOrderList = orderService.getFinishedOrder();
