@@ -52,6 +52,9 @@ public class NotifyController {
     @Autowired
     private FundsService fundsService;
 
+    @Autowired
+    private RedisService redisService;
+
     /**
      * 支付宝通知
      *
@@ -91,6 +94,7 @@ public class NotifyController {
                         return "success";
                     }
                     log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
+                    redisService.del("panel::user::" + order.getUserId());
                     // 获取是否混合支付信息
                     Boolean isMixedPay = "1".equals(id.split("_")[1]);
                     if (isMixedPay) {
@@ -124,6 +128,7 @@ public class NotifyController {
                         User user = userService.getById(order.getUserId());
                         if (ObjectUtil.isNotEmpty(user.getParentId())) {
                             User inviteUser = userService.getById(user.getParentId());
+                            redisService.del("panel::user::" + inviteUser.getId());
                             // 用户有等级的话,给返利
                             if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
                                 // 判断是循环返利还是首次返利
@@ -132,9 +137,11 @@ public class NotifyController {
                                 } else {
                                     // 首次返利,查该用户是否第一次充值
                                     int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
-                                    if (count == 0) {
+                                    if (count == 1) {
                                         // 首次
                                         userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    } else {
+                                        return "success";
                                     }
                                 }
                                 // 给邀请人新增返利明细

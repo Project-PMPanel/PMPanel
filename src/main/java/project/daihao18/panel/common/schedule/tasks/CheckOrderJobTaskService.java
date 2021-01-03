@@ -14,10 +14,7 @@ import project.daihao18.panel.common.utils.NotifyLockUtil;
 import project.daihao18.panel.entity.Funds;
 import project.daihao18.panel.entity.Order;
 import project.daihao18.panel.entity.User;
-import project.daihao18.panel.service.ConfigService;
-import project.daihao18.panel.service.FundsService;
-import project.daihao18.panel.service.OrderService;
-import project.daihao18.panel.service.UserService;
+import project.daihao18.panel.service.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -48,6 +45,9 @@ public class CheckOrderJobTaskService {
     @Autowired
     private FundsService fundsService;
 
+    @Autowired
+    private RedisService redisService;
+
 
     // 0 * * * * ?
     @Transactional
@@ -74,6 +74,7 @@ public class CheckOrderJobTaskService {
                             continue;
                         }
                         log.info("交易成功,开始补单: {}", response.getOutTradeNo());
+                        redisService.del("panel::user::" + order.getUserId());
                         // 获取是否混合支付信息
                         Boolean isMixedPay = "1".equals(id.split("_")[1]);
                         if (isMixedPay) {
@@ -107,23 +108,29 @@ public class CheckOrderJobTaskService {
                             User user = userService.getById(existOrder.getUserId());
                             if (ObjectUtil.isNotEmpty(user.getParentId())) {
                                 User inviteUser = userService.getById(user.getParentId());
+                                redisService.del("panel::user::" + inviteUser.getId());
                                 // 用户有等级的话,给返利
                                 if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
+                                    BigDecimal commission = existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP);
                                     // 判断是循环返利还是首次返利
                                     if (inviteUser.getInviteCycleEnable()) {
-                                        userService.handleCommission(inviteUser.getId(), existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                        log.info("id为{}的用户开始循环返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                        userService.handleCommission(inviteUser.getId(), commission);
                                     } else {
                                         // 首次返利,查该用户是否第一次充值
                                         int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
-                                        if (count == 0) {
+                                        if (count == 1) {
                                             // 首次
-                                            userService.handleCommission(inviteUser.getId(), existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                            log.info("id为{}的用户开始首次返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                            userService.handleCommission(inviteUser.getId(), commission);
+                                        } else {
+                                            return;
                                         }
                                     }
                                     // 给邀请人新增返利明细
                                     Funds inviteFund = new Funds();
                                     inviteFund.setUserId(inviteUser.getId());
-                                    inviteFund.setPrice(existOrder.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    inviteFund.setPrice(commission);
                                     inviteFund.setTime(now);
                                     inviteFund.setRelatedOrderId(existOrder.getOrderId());
                                     inviteFund.setContent("佣金");

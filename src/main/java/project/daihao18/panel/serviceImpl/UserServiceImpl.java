@@ -1164,7 +1164,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         userUpdateWrapper
                 .setSql("money=money+" + commission)
                 .eq("id", userId);
-        return this.update(userUpdateWrapper) && redisService.del("panel::user::" + userId);
+        if (this.update(userUpdateWrapper)) {
+            redisService.del("panel::user::" + userId);
+            return true;
+        }
+        return false;
     }
 
     @Override
