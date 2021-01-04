@@ -4,15 +4,10 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
-import com.alipay.api.domain.AlipayTradePagePayModel;
-import com.alipay.api.domain.AlipayTradePrecreateModel;
-import com.alipay.api.domain.AlipayTradeQueryModel;
-import com.alipay.api.domain.AlipayTradeWapPayModel;
+import com.alipay.api.domain.*;
 import com.alipay.api.internal.util.AlipayLogger;
-import com.alipay.api.request.AlipayTradePagePayRequest;
-import com.alipay.api.request.AlipayTradePrecreateRequest;
-import com.alipay.api.request.AlipayTradeQueryRequest;
-import com.alipay.api.request.AlipayTradeWapPayRequest;
+import com.alipay.api.request.*;
+import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.ijpay.alipay.AliPayApiConfigKit;
@@ -272,10 +267,10 @@ public class Alipay {
      * @return
      * @throws AlipayApiException
      */
-    public AlipayTradeQueryResponse query(Order order) throws AlipayApiException {
+    public AlipayTradeQueryResponse query(CommonOrder order) throws AlipayApiException {
         AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
         AlipayTradeQueryModel model = new AlipayTradeQueryModel();
-        model.setOutTradeNo(order.getOrderId() + "_0");
+        model.setOutTradeNo(order.getId() + "_0");
         request.setBizModel(model);
         // 设置alipayClient
         // 查2次
@@ -288,7 +283,7 @@ public class Alipay {
         if (!"40004".equals(execute.getCode())) {
             return execute;
         } else {
-            model.setOutTradeNo(order.getOrderId() + "_1");
+            model.setOutTradeNo(order.getId() + "_1");
             request.setBizModel(model);
             if (isCertMode) {
                 execute = alipayClient.certificateExecute(request);
@@ -300,5 +295,23 @@ public class Alipay {
             }
         }
         return null;
+    }
+
+    /**
+     * 关闭订单
+     * @param order
+     * @return
+     */
+    public AlipayTradeCloseResponse close(CommonOrder order) throws AlipayApiException {
+        AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();
+        AlipayTradeCloseModel model = new AlipayTradeCloseModel();
+        model.setOutTradeNo(order.getId());
+        request.setBizModel(model);
+        // 设置alipayClient
+        if (isCertMode) {
+            return alipayClient.certificateExecute(request);
+        } else {
+            return alipayClient.execute(request);
+        }
     }
 }

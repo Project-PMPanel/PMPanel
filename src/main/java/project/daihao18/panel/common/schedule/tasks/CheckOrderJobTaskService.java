@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.common.enums.PayStatusEnum;
 import project.daihao18.panel.common.payment.alipay.Alipay;
 import project.daihao18.panel.common.utils.NotifyLockUtil;
+import project.daihao18.panel.entity.CommonOrder;
 import project.daihao18.panel.entity.Funds;
 import project.daihao18.panel.entity.Order;
 import project.daihao18.panel.entity.User;
@@ -59,7 +60,9 @@ public class CheckOrderJobTaskService {
                 List<Order> orders = orderService.getCheckedOrder();
                 for (Order order : orders) {
                     // log.info("{}", order);
-                    AlipayTradeQueryResponse response = alipay.query(order);
+                    CommonOrder commonOrder = new CommonOrder();
+                    commonOrder.setId(order.getOrderId());
+                    AlipayTradeQueryResponse response = alipay.query(commonOrder);
                     if (ObjectUtil.isEmpty(response)) {
                         continue;
                     }

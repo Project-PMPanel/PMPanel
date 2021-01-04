@@ -1,5 +1,6 @@
 package project.daihao18.panel.service;
 
+import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.extension.service.IService;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.entity.Order;
@@ -37,7 +38,7 @@ public interface OrderService extends IService<Order> {
 
     Result getOrder(HttpServletRequest request);
 
-    List<Order> getCheckedOrder();
+    List<Order> getCheckedOrder() throws AlipayApiException;
 
     BigDecimal getMonthIncome();
 
