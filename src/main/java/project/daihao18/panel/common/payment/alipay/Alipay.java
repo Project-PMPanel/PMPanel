@@ -305,13 +305,30 @@ public class Alipay {
     public AlipayTradeCloseResponse close(CommonOrder order) throws AlipayApiException {
         AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();
         AlipayTradeCloseModel model = new AlipayTradeCloseModel();
-        model.setOutTradeNo(order.getId());
+        model.setOutTradeNo(order.getId() + "_0");
         request.setBizModel(model);
         // 设置alipayClient
+        // 关闭2次
+        AlipayTradeCloseResponse execute = null;
         if (isCertMode) {
-            return alipayClient.certificateExecute(request);
+            execute = alipayClient.certificateExecute(request);
         } else {
-            return alipayClient.execute(request);
+            execute = alipayClient.execute(request);
         }
+        if (!"40004".equals(execute.getCode())) {
+            return execute;
+        } else {
+            model.setOutTradeNo(order.getId() + "_1");
+            request.setBizModel(model);
+            if (isCertMode) {
+                execute = alipayClient.certificateExecute(request);
+            } else {
+                execute = alipayClient.execute(request);
+            }
+            if (!"40004".equals(execute.getCode())) {
+                return execute;
+            }
+        }
+        return null;
     }
 }

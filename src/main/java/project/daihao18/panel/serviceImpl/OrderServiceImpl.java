@@ -216,18 +216,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public List<Order> getCheckedOrder() throws AlipayApiException {
         Date now = new Date();
-        // 查5分钟前的订单
+        // 查询10分钟前到5分钟前的订单->关闭
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
-        orderQueryWrapper.lt("create_time", DateUtil.offsetMinute(now, -5)).in("status", 0, 2);
+        orderQueryWrapper.between("create_time", DateUtil.offsetMinute(now, -10), DateUtil.offsetMinute(now, -5)).in("status", 0, 2);
         List<Order> orders = this.list(orderQueryWrapper);
         for (Order order : orders) {
             // 关闭支付宝订单
             CommonOrder commonOrder = new CommonOrder();
             commonOrder.setId(order.getOrderId());
             AlipayTradeCloseResponse close = alipay.close(commonOrder);
-            log.debug("closeResponse: {}", close.toString());
+            if (ObjectUtil.isNotEmpty(close)) {
+                log.debug("closeResponse: {}", close.getBody());
+            }
         }
-        // 关闭本地订单
+        // 关闭5分钟前本地订单
         UpdateWrapper<Order> orderUpdateWrapper = new UpdateWrapper<>();
         orderUpdateWrapper.set("status", 2).lt("create_time", DateUtil.offsetMinute(now, -5)).eq("status", 0);
         this.update(orderUpdateWrapper);
