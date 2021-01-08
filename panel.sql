@@ -32,7 +32,7 @@ CREATE TABLE `alive_ip` (
   KEY `alive_ip_nodeid` (`nodeid`),
   CONSTRAINT `alive_ip_nodeid` FOREIGN KEY (`nodeid`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `alive_ip_userid` FOREIGN KEY (`userid`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=564763 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线ip';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线ip';
 
 -- ----------------------------
 -- Table structure for announcement
@@ -44,7 +44,7 @@ CREATE TABLE `announcement` (
   `markdown_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公告';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公告';
 
 -- ----------------------------
 -- Table structure for blockip
@@ -69,7 +69,7 @@ CREATE TABLE `config` (
   `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
   `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=303 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='面板配置';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='面板配置';
 
 -- ----------------------------
 -- Table structure for detect_list
@@ -81,7 +81,7 @@ CREATE TABLE `detect_list` (
   `regex` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` int NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审计规则';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审计规则';
 
 -- ----------------------------
 -- Table structure for detect_log
@@ -131,7 +131,7 @@ CREATE TABLE `funds` (
   PRIMARY KEY (`id`),
   KEY `funds_userid` (`user_id`),
   CONSTRAINT `funds_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资金明细表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资金明细表';
 
 -- ----------------------------
 -- Table structure for node_with_detect
@@ -161,7 +161,7 @@ CREATE TABLE `operate_ip` (
   PRIMARY KEY (`id`),
   KEY `operate_ip_user_id` (`user_id`),
   CONSTRAINT `operate_ip_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Table structure for order
@@ -193,7 +193,7 @@ CREATE TABLE `order` (
   KEY `order_planid` (`plan_id`),
   CONSTRAINT `order_planid` FOREIGN KEY (`plan_id`) REFERENCES `plan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `order_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=119 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单记录';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单记录';
 
 -- ----------------------------
 -- Table structure for package
@@ -231,7 +231,7 @@ CREATE TABLE `permission` (
   `role` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'user/admin/...',
   `permission` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '权限',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限';
 
 -- ----------------------------
 -- Table structure for plan
@@ -261,7 +261,7 @@ CREATE TABLE `plan` (
   `extra_info` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '额外信息',
   `extra_info_english` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '额外信息英文',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='套餐';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='套餐';
 
 -- ----------------------------
 -- Table structure for relay
@@ -299,7 +299,7 @@ CREATE TABLE `schedule` (
   `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Table structure for speedtest
@@ -355,7 +355,7 @@ CREATE TABLE `ss_node` (
   `custom_rss` int DEFAULT '1',
   `mu_only` int DEFAULT '-1',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='节点表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='节点表';
 
 -- ----------------------------
 -- Table structure for ss_node_info
@@ -384,7 +384,7 @@ CREATE TABLE `ss_node_online_log` (
   PRIMARY KEY (`id`) USING BTREE,
   KEY `ss_node_online_log_nodeid` (`node_id`),
   CONSTRAINT `ss_node_online_log_nodeid` FOREIGN KEY (`node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Table structure for tutorial
@@ -396,7 +396,7 @@ CREATE TABLE `tutorial` (
   `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
   `markdown_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Table structure for unblockip
@@ -455,7 +455,7 @@ CREATE TABLE `user` (
   `reg_date` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `EMAIL_UNIQUE` (`email`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=31377 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ----------------------------
 -- Table structure for user_traffic_log
