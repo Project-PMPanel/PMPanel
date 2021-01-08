@@ -430,78 +430,77 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result addOrder(User user, Order order) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
-        // 先查询该用户是否存在未支付的订单
-        Order existOrder = orderService.getOne(new QueryWrapper<Order>().eq("user_id", user.getId()).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
-        if (ObjectUtil.isNotEmpty(existOrder)) {
-            // 存在未支付订单
-            return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
-        }
-        // 查询订购的套餐详情
-        Plan plan = planService.getById(order.getPlanId());
-        // 如果当前库存不足,直接返回
-        if (plan.getBuyLimit() == 0) {
-            return Result.setResult(ResultCodeEnum.INVENTORY_SHORTAGE_ERROR);
-        }
-        // 套餐已下架直接返回
-        if (!plan.getEnable()) {
-            return Result.setResult(ResultCodeEnum.PROHIBIT_SALES_ERROR);
-        }
-        // 是折扣套餐,但是在折扣 开始前或者结束后不允许新购
-        Date now = new Date();
-        if (plan.getIsDiscount() && now.before(plan.getDiscountStart()) && now.after(plan.getDiscountEnd())) {
-            return Result.setResult(ResultCodeEnum.PROHIBIT_SALES_ERROR);
-        }
-        Plan copyPlan = plan;
-        // transferEnable, packagee 转GB
-        copyPlan.setTransferEnable(FlowSizeConverterUtil.BytesToGb(copyPlan.getTransferEnable()).longValue());
-        copyPlan.setPackagee(FlowSizeConverterUtil.BytesToGb(copyPlan.getPackagee()).longValue());
-        copyPlan.setMonths(plan.getMonths());
-        copyPlan.setPrice(plan.getPrice());
-        copyPlan.setNodeGroup(plan.getNodeGroup());
-        copyPlan.setEnableRenew(plan.getEnableRenew());
-        // 如果是初次购买,计算百分比的流量
-        // 用户 是否过期
-        if (user.getExpireIn().before(now)) {
-            // 已过期, 计算到本月底
-            // 当天到月底的天数,包含当天
-            long toMonthEndDays = DateUtil.betweenDay(now, DateUtil.endOfMonth(now), true) + 1;
-            // 计算到本月底的流量
-            copyPlan.setCurrentMonthTransferEnable(copyPlan.getTransferEnable() * toMonthEndDays / LocalDate.now().lengthOfMonth());
-        }
-        Result calcInfo = this.getChoosePlanInfo(user, plan.getMonths(), plan.getPrice(), order.getMonthCount());
-        order.setPrice(new BigDecimal(calcInfo.getData().get("calcPrice").toString()));
-        order.setExpire(DateUtil.parse(calcInfo.getData().get("calcExpire").toString()));
-        order.setOrderId(OrderUtil.getOrderId());
-        order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
-        order.setUserId(user.getId());
-        order.setCreateTime(new Date());
-        // 设置需要存储的user的json
-        User userJson = new User();
-        userJson.setId(user.getId());
-        userJson.setEmail(user.getEmail());
-        userJson.setMoney(user.getMoney());
-        userJson.setClazz(user.getClazz());
-        userJson.setExpireIn(user.getExpireIn());
-        userJson.setU(user.getU());
-        userJson.setD(user.getD());
-        userJson.setTransferEnable(user.getTransferEnable());
-        userJson.setNodeSpeedlimit(user.getNodeSpeedlimit());
-        userJson.setNodeConnector(user.getNodeConnector());
-        order.setUserDetails(JSONUtil.toJsonStr(userJson));
-        // 设置需要存储的plan的json
-        order.setPlanDetails(JSONUtil.toJsonStr(copyPlan));
-        // 保存成功,修改库存
-        if (orderService.save(order)) {
-            // 有库存限制,更新库存
-            if (plan.getBuyLimit() > 0) {
-                plan.setBuyLimit(plan.getBuyLimit() - 1);
-                planService.updateById(plan);
+        synchronized (OrderLockUtil.class) {
+            // 先查询该用户是否存在未支付的订单
+            Order existOrder = orderService.getOne(new QueryWrapper<Order>().eq("user_id", user.getId()).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
+            if (ObjectUtil.isNotEmpty(existOrder)) {
+                // 存在未支付订单
+                return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
             }
+            // 查询订购的套餐详情
+            Plan plan = planService.getById(order.getPlanId());
+            // 如果当前库存不足,直接返回
+            if (plan.getBuyLimit() == 0) {
+                return Result.setResult(ResultCodeEnum.INVENTORY_SHORTAGE_ERROR);
+            }
+            // 套餐已下架直接返回
+            if (!plan.getEnable()) {
+                return Result.setResult(ResultCodeEnum.PROHIBIT_SALES_ERROR);
+            }
+            // 是折扣套餐,但是在折扣 开始前或者结束后不允许新购
+            Date now = new Date();
+            if (plan.getIsDiscount() && now.before(plan.getDiscountStart()) && now.after(plan.getDiscountEnd())) {
+                return Result.setResult(ResultCodeEnum.PROHIBIT_SALES_ERROR);
+            }
+            Plan copyPlan = plan;
+            // transferEnable, packagee 转GB
+            copyPlan.setTransferEnable(FlowSizeConverterUtil.BytesToGb(copyPlan.getTransferEnable()).longValue());
+            copyPlan.setPackagee(FlowSizeConverterUtil.BytesToGb(copyPlan.getPackagee()).longValue());
+            copyPlan.setMonths(plan.getMonths());
+            copyPlan.setPrice(plan.getPrice());
+            copyPlan.setNodeGroup(plan.getNodeGroup());
+            copyPlan.setEnableRenew(plan.getEnableRenew());
+            // 如果是初次购买,计算百分比的流量
+            // 用户 是否过期
+            if (user.getExpireIn().before(now)) {
+                // 已过期, 计算到本月底
+                // 当天到月底的天数,包含当天
+                long toMonthEndDays = DateUtil.betweenDay(now, DateUtil.endOfMonth(now), true) + 1;
+                // 计算到本月底的流量
+                copyPlan.setCurrentMonthTransferEnable(copyPlan.getTransferEnable() * toMonthEndDays / LocalDate.now().lengthOfMonth());
+            }
+            Result calcInfo = this.getChoosePlanInfo(user, plan.getMonths(), plan.getPrice(), order.getMonthCount());
+            order.setPrice(new BigDecimal(calcInfo.getData().get("calcPrice").toString()));
+            order.setExpire(DateUtil.parse(calcInfo.getData().get("calcExpire").toString()));
+            order.setOrderId(OrderUtil.getOrderId());
+            order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
+            order.setUserId(user.getId());
+            order.setCreateTime(new Date());
+            // 设置需要存储的user的json
+            User userJson = new User();
+            userJson.setId(user.getId());
+            userJson.setEmail(user.getEmail());
+            userJson.setMoney(user.getMoney());
+            userJson.setClazz(user.getClazz());
+            userJson.setExpireIn(user.getExpireIn());
+            userJson.setU(user.getU());
+            userJson.setD(user.getD());
+            userJson.setTransferEnable(user.getTransferEnable());
+            userJson.setNodeSpeedlimit(user.getNodeSpeedlimit());
+            userJson.setNodeConnector(user.getNodeConnector());
+            order.setUserDetails(JSONUtil.toJsonStr(userJson));
+            // 设置需要存储的plan的json
+            order.setPlanDetails(JSONUtil.toJsonStr(copyPlan));
+            // 保存成功,修改库存
+            if (orderService.save(order)) {
+                // 有库存限制,更新库存
+                if (plan.getBuyLimit() > 0) {
+                    plan.setBuyLimit(plan.getBuyLimit() - 1);
+                    planService.updateById(plan);
+                }
+            }
+            return Result.ok().data("orderId", order.getOrderId());
         }
-        lock.unlock();
-        return Result.ok().data("orderId", order.getOrderId());
     }
 
     @Override
@@ -622,61 +621,60 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result addRenewOrder(User user, Order order) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
-        // 先查询该用户是否存在未支付的订单
-        Order existOrder = orderService.getOne(new QueryWrapper<Order>().eq("user_id", user.getId()).eq("status", 0));
-        if (ObjectUtil.isNotEmpty(existOrder)) {
-            // 存在未支付订单
-            return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
+        synchronized (OrderLockUtil.class) {
+            // 先查询该用户是否存在未支付的订单
+            Order existOrder = orderService.getOne(new QueryWrapper<Order>().eq("user_id", user.getId()).eq("status", 0));
+            if (ObjectUtil.isNotEmpty(existOrder)) {
+                // 存在未支付订单
+                return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
+            }
+            Order beRenewOrder = orderService.getOrderByOrderId(order.getOrderId());
+            if (!(Boolean) beRenewOrder.getPlanDetailsMap().get("enableRenew")) {
+                // 不允许续费订单
+                return Result.error().message("该订单不允许续费").messageEnglish("This order is not allow to renew");
+            }
+
+            order.setOrderId(OrderUtil.getOrderId());
+            order.setUserId(user.getId());
+            order.setPlanId(beRenewOrder.getPlanId());
+            order.setMonthCount(order.getMonthCount());
+            Map<String, Object> calcInfo = this.getChooseRenewPlanInfo(user, beRenewOrder.getOrderId(), order.getMonthCount()).getData();
+            order.setPrice(new BigDecimal(calcInfo.get("calcPrice").toString()));
+            order.setExpire(DateUtil.parse(calcInfo.get("calcExpire").toString()));
+
+            order.setCreateTime(new Date());
+            order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
+            // 设置需要存储的user的json
+            User userJson = new User();
+            userJson.setId(user.getId());
+            userJson.setEmail(user.getEmail());
+            userJson.setMoney(user.getMoney());
+            userJson.setClazz(user.getClazz());
+            userJson.setExpireIn(user.getExpireIn());
+            userJson.setU(user.getU());
+            userJson.setD(user.getD());
+            userJson.setTransferEnable(user.getTransferEnable());
+            userJson.setNodeSpeedlimit(user.getNodeSpeedlimit());
+            userJson.setNodeConnector(user.getNodeConnector());
+            order.setUserDetails(JSONUtil.toJsonStr(userJson));
+            // 设置需要存储的plan的json
+            Map<String, Object> planMap = beRenewOrder.getPlanDetailsMap();
+            planMap.put("currentMonthTransferEnable", 0);
+            ArrayList<Integer> monthsIntegerList = (ArrayList<Integer>) planMap.get("monthsList");
+            List<String> monthsStringList = monthsIntegerList.stream().map(Object::toString).collect(Collectors.toList());
+            String months = String.join("-", monthsStringList);
+            planMap.put("months", months);
+            ArrayList<BigDecimal> priceBigDecimalList = (ArrayList<BigDecimal>) planMap.get("priceList");
+            List<String> priceStringList = priceBigDecimalList.stream().map(Object::toString).collect(Collectors.toList());
+            String price = String.join("-", priceStringList);
+            planMap.put("price", price);
+
+            beRenewOrder.setPlanDetailsMap(planMap);
+            order.setPlanDetails(JSONUtil.toJsonStr(beRenewOrder.getPlanDetailsMap()));
+            // 保存成功,修改库存
+            orderService.save(order);
+            return Result.ok().data("orderId", order.getOrderId());
         }
-        Order beRenewOrder = orderService.getOrderByOrderId(order.getOrderId());
-        if (!(Boolean) beRenewOrder.getPlanDetailsMap().get("enableRenew")) {
-            // 不允许续费订单
-            return Result.error().message("该订单不允许续费").messageEnglish("This order is not allow to renew");
-        }
-
-        order.setOrderId(OrderUtil.getOrderId());
-        order.setUserId(user.getId());
-        order.setPlanId(beRenewOrder.getPlanId());
-        order.setMonthCount(order.getMonthCount());
-        Map<String, Object> calcInfo = this.getChooseRenewPlanInfo(user, beRenewOrder.getOrderId(), order.getMonthCount()).getData();
-        order.setPrice(new BigDecimal(calcInfo.get("calcPrice").toString()));
-        order.setExpire(DateUtil.parse(calcInfo.get("calcExpire").toString()));
-
-        order.setCreateTime(new Date());
-        order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
-        // 设置需要存储的user的json
-        User userJson = new User();
-        userJson.setId(user.getId());
-        userJson.setEmail(user.getEmail());
-        userJson.setMoney(user.getMoney());
-        userJson.setClazz(user.getClazz());
-        userJson.setExpireIn(user.getExpireIn());
-        userJson.setU(user.getU());
-        userJson.setD(user.getD());
-        userJson.setTransferEnable(user.getTransferEnable());
-        userJson.setNodeSpeedlimit(user.getNodeSpeedlimit());
-        userJson.setNodeConnector(user.getNodeConnector());
-        order.setUserDetails(JSONUtil.toJsonStr(userJson));
-        // 设置需要存储的plan的json
-        Map<String, Object> planMap = beRenewOrder.getPlanDetailsMap();
-        planMap.put("currentMonthTransferEnable", 0);
-        ArrayList<Integer> monthsIntegerList = (ArrayList<Integer>) planMap.get("monthsList");
-        List<String> monthsStringList = monthsIntegerList.stream().map(Object::toString).collect(Collectors.toList());
-        String months = String.join("-", monthsStringList);
-        planMap.put("months", months);
-        ArrayList<BigDecimal> priceBigDecimalList = (ArrayList<BigDecimal>) planMap.get("priceList");
-        List<String> priceStringList = priceBigDecimalList.stream().map(Object::toString).collect(Collectors.toList());
-        String price = String.join("-", priceStringList);
-        planMap.put("price", price);
-
-        beRenewOrder.setPlanDetailsMap(planMap);
-        order.setPlanDetails(JSONUtil.toJsonStr(beRenewOrder.getPlanDetailsMap()));
-        // 保存成功,修改库存
-        orderService.save(order);
-        lock.unlock();
-        return Result.ok().data("orderId", order.getOrderId());
     }
 
     @Override
@@ -724,24 +722,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result addPackageOrder(Integer userId, Package pack) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
-        // 先查询该用户是否存在未支付的流量包订单
-        Package existPackageOrder = packageService.getOne(new QueryWrapper<Package>().eq("user_id", userId).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
-        if (ObjectUtil.isNotEmpty(existPackageOrder)) {
-            // 存在未支付订单
-            return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
+        synchronized (OrderLockUtil.class) {
+            // 先查询该用户是否存在未支付的流量包订单
+            Package existPackageOrder = packageService.getOne(new QueryWrapper<Package>().eq("user_id", userId).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
+            if (ObjectUtil.isNotEmpty(existPackageOrder)) {
+                // 存在未支付订单
+                return Result.setResult(ResultCodeEnum.EXIST_ORDER_ERROR);
+            }
+            Order currentPlan = orderService.getCurrentPlan(userId);
+            pack.setUserId(userId);
+            pack.setOrderId(currentPlan.getOrderId());
+            pack.setTransferEnable(FlowSizeConverterUtil.GbToBytes(pack.getPrice().intValue() * Integer.parseInt(currentPlan.getPlanDetailsMap().get("packagee").toString())));
+            Date now = new Date();
+            pack.setExpire(Date.from(LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault()).toInstant()));
+            pack.setCreateTime(now);
+            packageService.save(pack);
+            return Result.ok().data("package", pack);
         }
-        Order currentPlan = orderService.getCurrentPlan(userId);
-        pack.setUserId(userId);
-        pack.setOrderId(currentPlan.getOrderId());
-        pack.setTransferEnable(FlowSizeConverterUtil.GbToBytes(pack.getPrice().intValue() * Integer.parseInt(currentPlan.getPlanDetailsMap().get("packagee").toString())));
-        Date now = new Date();
-        pack.setExpire(Date.from(LocalDateTime.now().with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault()).toInstant()));
-        pack.setCreateTime(now);
-        packageService.save(pack);
-        lock.unlock();
-        return Result.ok().data("package", pack);
     }
 
     @Override
@@ -851,95 +848,97 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result payOrder(HttpServletRequest request, CommonOrder commonOrder) throws AlipayApiException {
-        if (BigDecimal.ZERO.compareTo(commonOrder.getMixedMoneyAmount()) == 0) {
-            // 如果余额为0,那就是单一支付
-            commonOrder.setIsMixedPay(false);
-        }
-        User user = this.getById(JwtTokenUtil.getId(request));
-        // 1.根据payType获取订单,再判断是否非法请求
-        Order order = null;
-        Package pack = null;
-        if ("plan".equals(commonOrder.getType())) {
-            // 用户id不一样,非法请求
-            order = orderService.getOrderByOrderId(commonOrder.getId());
-            if (ObjectUtil.notEqual(user.getId(), order.getUserId())) {
-                return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
+        synchronized (OrderLockUtil.class) {
+            if (BigDecimal.ZERO.compareTo(commonOrder.getMixedMoneyAmount()) == 0) {
+                // 如果余额为0,那就是单一支付
+                commonOrder.setIsMixedPay(false);
             }
-            if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
-                return Result.setResult(ResultCodeEnum.ORDER_PAID_ERROR);
-            }
-        } else if ("package".equals(commonOrder.getType())) {
-            // 用户id不一样,非法请求
-            pack = packageService.getById(commonOrder.getId());
-            if (ObjectUtil.notEqual(user.getId(), pack.getUserId())) {
-                return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
-            }
-            if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
-                return Result.setResult(ResultCodeEnum.ORDER_PAID_ERROR);
-            }
-        } else {
-            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-        }
-        // 2.根据是否是混合支付来设定订单
-        // 获取支付配置
-        String alipay = configService.getValueByName("alipay");
-        String wxpay = configService.getValueByName("wxpay");
-        if (commonOrder.getIsMixedPay()) {
-            // 调用外部支付
-            // 2.1 校验一下混合支付金额是否正确
+            User user = this.getById(JwtTokenUtil.getId(request));
+            // 1.根据payType获取订单,再判断是否非法请求
+            Order order = null;
+            Package pack = null;
             if ("plan".equals(commonOrder.getType())) {
-                if (order.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
-                    return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                // 用户id不一样,非法请求
+                order = orderService.getOrderByOrderId(commonOrder.getId());
+                if (ObjectUtil.notEqual(user.getId(), order.getUserId())) {
+                    return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
+                }
+                if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
+                    return Result.setResult(ResultCodeEnum.ORDER_PAID_ERROR);
+                }
+            } else if ("package".equals(commonOrder.getType())) {
+                // 用户id不一样,非法请求
+                pack = packageService.getById(commonOrder.getId());
+                if (ObjectUtil.notEqual(user.getId(), pack.getUserId())) {
+                    return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
+                }
+                if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
+                    return Result.setResult(ResultCodeEnum.ORDER_PAID_ERROR);
                 }
             } else {
-                if (pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
-                    return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                }
+                return Result.setResult(ResultCodeEnum.PARAM_ERROR);
             }
-            switch (commonOrder.getPayType()) {
-                case "alipay":
-                    return payOrderByAlipay(alipay, commonOrder, true);
-                case "wxpay":
-                    // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
-                default:
-                    return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-            }
-
-        } else {
-            // 根据单一支付来执行逻辑
-            // 2.1 校验一下单一支付金额是否正确
-            if ("plan".equals(commonOrder.getType())) {
-                if ("money".equals(commonOrder.getPayType())) {
-                    if (!(order.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
+            // 2.根据是否是混合支付来设定订单
+            // 获取支付配置
+            String alipay = configService.getValueByName("alipay");
+            String wxpay = configService.getValueByName("wxpay");
+            if (commonOrder.getIsMixedPay()) {
+                // 调用外部支付
+                // 2.1 校验一下混合支付金额是否正确
+                if ("plan".equals(commonOrder.getType())) {
+                    if (order.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
                         return Result.setResult(ResultCodeEnum.PARAM_ERROR);
                     }
                 } else {
-                    if (!(order.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                    if (pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
                         return Result.setResult(ResultCodeEnum.PARAM_ERROR);
                     }
                 }
-            } else {
-                if ("money".equals(commonOrder.getPayType())) {
-                    if (!(pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                switch (commonOrder.getPayType()) {
+                    case "alipay":
+                        return payOrderByAlipay(alipay, commonOrder, true);
+                    case "wxpay":
+                        // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
+                    default:
                         return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                }
+
+            } else {
+                // 根据单一支付来执行逻辑
+                // 2.1 校验一下单一支付金额是否正确
+                if ("plan".equals(commonOrder.getType())) {
+                    if ("money".equals(commonOrder.getPayType())) {
+                        if (!(order.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                        }
+                    } else {
+                        if (!(order.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                        }
                     }
                 } else {
-                    if (!(pack.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
-                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                    if ("money".equals(commonOrder.getPayType())) {
+                        if (!(pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                        }
+                    } else {
+                        if (!(pack.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
+                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                        }
                     }
                 }
-            }
-            switch (commonOrder.getPayType()) {
-                case "money":
-                    return "plan".equals(commonOrder.getType()) ? singlePayOrderByMoney(user, order) : singlePayOrderByMoney(user, pack);
-                case "alipay":
-                    return payOrderByAlipay(alipay, commonOrder, false);
-                case "wxpay":
-                    // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
-                default:
-                    return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-            }
+                switch (commonOrder.getPayType()) {
+                    case "money":
+                        return "plan".equals(commonOrder.getType()) ? singlePayOrderByMoney(user, order) : singlePayOrderByMoney(user, pack);
+                    case "alipay":
+                        return payOrderByAlipay(alipay, commonOrder, false);
+                    case "wxpay":
+                        // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
+                    default:
+                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
+                }
 
+            }
         }
     }
 
