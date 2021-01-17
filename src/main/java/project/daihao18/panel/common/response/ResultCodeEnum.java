@@ -25,7 +25,7 @@ public enum ResultCodeEnum {
     MAIL_SEND_LIMIT_ERROR(false, 5006, "邮件发送频率过快", "Email is sent too quickly"),
     CHECK_CODE_ERROR(false, 5007, "验证码错误", "CheckCode error"),
     USER_NOT_FIND_ERROR(false, 5008, "用户不存在", "The user doesn't exists"),
-    INVALID_INVITE_CODE_ERROR(false, 5009, "邀请码不存在或邀请次数不足", "Invalid invite code"),
+    INVALID_INVITE_CODE_ERROR(false, 5009, "邀请人非VIP或邀请码不存在或邀请次数不足", "Invalid invite code"),
     EXIST_ORDER_ERROR(false, 5010, "存在未支付订单", "Have unpaid order"),
     PROHIBIT_SALES_ERROR(false, 5011, "已关闭购买", "Prohibit sales"),
     INVENTORY_SHORTAGE_ERROR(false, 5012, "库存不足", "Inventory shortage"),

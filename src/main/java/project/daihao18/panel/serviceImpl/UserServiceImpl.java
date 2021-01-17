@@ -281,14 +281,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 设置用户
         user.setParentId(0);
-        if (ObjectUtil.isNotEmpty(inviteUser) && Objects.requireNonNull(inviteUser).getInviteCount() > 0) {
-            // 邀请人在,邀请次数>0,设置邀请
+        if (ObjectUtil.isNotEmpty(inviteUser) && Objects.requireNonNull(inviteUser).getClazz() > 0 && Objects.requireNonNull(inviteUser).getInviteCount() > 0) {
+            // 邀请人在,邀请人为会员,邀请次数>0,设置邀请
             user.setParentId(inviteUser.getId());
             // 邀请数-1
             inviteUser.setInviteCount(inviteUser.getInviteCount() - 1);
             this.updateById(inviteUser);
-        } else if ((ObjectUtil.isNotEmpty(inviteUser) && Objects.requireNonNull(inviteUser).getInviteCount() <= 0) || (ObjectUtil.isNotEmpty(inviteCode) && ObjectUtil.isEmpty(inviteUser))) {
-            // 邀请人在,邀请次数<=0,或者填了邀请码但是邀请人不在
+        } else if ((ObjectUtil.isNotEmpty(inviteUser) && Objects.requireNonNull(inviteUser).getInviteCount() <= 0)
+                || (ObjectUtil.isNotEmpty(inviteUser) && Objects.requireNonNull(inviteUser).getClazz() <= 0)
+                || (ObjectUtil.isNotEmpty(inviteCode) && ObjectUtil.isEmpty(inviteUser))) {
+            // 邀请人在,非VIP,邀请次数<=0,或者填了邀请码但是邀请人不在
             throw new CustomException(ResultCodeEnum.INVALID_INVITE_CODE_ERROR);
         }
 
