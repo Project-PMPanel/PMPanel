@@ -34,13 +34,14 @@ public class PackageServiceImpl extends ServiceImpl<PackageMapper, Package> impl
 
     @Override
     @Transactional
-    public boolean updateFinishedPackageOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, Date payTime, Integer status, Integer id) {
+    public boolean updateFinishedPackageOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Date payTime, Integer status, Integer id) {
         UpdateWrapper<Package> packageUpdateWrapper = new UpdateWrapper<>();
         packageUpdateWrapper
                 .set("is_mixed_pay", isMixedPay)
                 .set("mixed_money_amount", mixedMoneyAmount)
                 .set("mixed_pay_amount", mixedPayAmount)
                 .set("pay_type", payType)
+                .set("payer", payer)
                 .set("pay_time", payTime)
                 .set("status", status)
                 .eq("id", id)

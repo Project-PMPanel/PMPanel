@@ -174,7 +174,7 @@ public class NotifyController {
                     }
                     pack.setMixedPayAmount(new BigDecimal(params.get("total_amount")));
                     // 更新流量包订单
-                    if (packageService.updateFinishedPackageOrder(pack.getIsMixedPay(), pack.getMixedMoneyAmount(), pack.getMixedPayAmount(), "支付宝", DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+                    if (packageService.updateFinishedPackageOrder(pack.getIsMixedPay(), pack.getMixedMoneyAmount(), pack.getMixedPayAmount(), "支付宝", params.get("buyer_id"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
                         // 查询用户当前套餐
                         Order currentOrder = orderService.getCurrentPlan(pack.getUserId());
                         userService.updateUserAfterBuyPackageOrder(currentOrder, pack);

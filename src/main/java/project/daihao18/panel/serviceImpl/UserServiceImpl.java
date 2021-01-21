@@ -1068,7 +1068,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         Date now = new Date();
         // 更新pack成功后更新用户
-        if (packageService.updateFinishedPackageOrder(false, pack.getPrice(), BigDecimal.ZERO, "余额", now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+        if (packageService.updateFinishedPackageOrder(false, pack.getPrice(), BigDecimal.ZERO, "余额", null, now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
             this.updateUserAfterBuyPackageOrder(currentOrder, packageService.getById(pack.getId()));
             // 新增资金明细表
             Funds funds = new Funds();

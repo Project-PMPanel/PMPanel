@@ -15,5 +15,5 @@ import java.util.Date;
 public interface PackageService extends IService<Package> {
     void expiredFinishedPackageOrder();
 
-    boolean updateFinishedPackageOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, Date payTime, Integer status, Integer id);
+    boolean updateFinishedPackageOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Date payTime, Integer status, Integer id);
 }
