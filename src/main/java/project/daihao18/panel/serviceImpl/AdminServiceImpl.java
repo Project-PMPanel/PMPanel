@@ -118,7 +118,7 @@ public class AdminServiceImpl implements AdminService {
         map.put("monthIncome", orderService.getMonthIncome());
         map.put("todayIncome", orderService.getTodayIncome());
         map.put("todayOrderCount", orderService.getTodayOrderCount());
-        map.put("todayNewOrderCount", orderService.getTodayNewOrderCount());
+        map.put("monthPaidUserCount", userService.getMonthPaidUserCount());
         return Result.ok().data(map);
     }
 

@@ -277,15 +277,4 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .gt("pay_time", DateUtil.beginOfDay(now));
         return this.count(orderQueryWrapper);
     }
-
-    @Override
-    public Object getTodayNewOrderCount() {
-        Date now = new Date();
-        QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
-        orderQueryWrapper
-                .eq("is_new_payer", 1)
-                .eq("status", 1)
-                .gt("pay_time", DateUtil.beginOfDay(now));
-        return this.count(orderQueryWrapper);
-    }
 }

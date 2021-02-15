@@ -1357,4 +1357,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .lt("expire_in", DateUtil.offsetDay(new Date(), 3));
         return this.list(userQueryWrapper);
     }
+
+    @Override
+    public Object getMonthPaidUserCount() {
+        DateTime beginOfMonth = DateUtil.beginOfMonth(new Date());
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .gt("class", 0)
+                .gt("reg_date", DateUtil.beginOfDay(beginOfMonth));
+        return this.count(userQueryWrapper);
+    }
 }

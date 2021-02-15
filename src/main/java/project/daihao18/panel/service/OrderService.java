@@ -45,6 +45,4 @@ public interface OrderService extends IService<Order> {
     BigDecimal getTodayIncome();
 
     Object getTodayOrderCount();
-
-    Object getTodayNewOrderCount();
 }

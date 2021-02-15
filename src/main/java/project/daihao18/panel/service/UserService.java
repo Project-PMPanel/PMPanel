@@ -110,4 +110,6 @@ public interface UserService extends IService<User> {
     Integer getRegisterCountByDateToNow(DateTime beginDate);
 
     List<User> getExpiredUser();
+
+    Object getMonthPaidUserCount();
 }
