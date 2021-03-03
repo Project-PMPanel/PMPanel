@@ -10,6 +10,6 @@ import java.util.List;
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
-    @Select("SELECT * FROM `order` a JOIN (SELECT user_id, MIN(expire) AS expire FROM `order` WHERE(`status` = 1 AND expire > NOW()) GROUP BY user_id) b ON a.user_id = b.user_id AND a.expire = b.expire GROUP BY a.user_id")
+    @Select("SELECT * FROM `order` a JOIN (SELECT user_id, MIN(expire) AS expire FROM `order` WHERE(`status` = 1 AND expire > NOW()) GROUP BY user_id) b ON a.user_id = b.user_id AND a.expire = b.expire AND a.`status` = 1 GROUP BY a.user_id")
     List<Order> getFinishedOrder();
 }
