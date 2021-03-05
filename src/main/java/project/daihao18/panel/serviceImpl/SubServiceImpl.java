@@ -403,7 +403,7 @@ public class SubServiceImpl implements SubService {
             // ss 或 ssr节点不为空,遍历单端口信息
             for (SsNode ssNode : ssNodes) {
                 // 给该mu计算小火箭的ss订阅链接
-                if (ssNode.getObfs().startsWith("simple_obfs")) {
+                if (ssNode.getObfs().startsWith("simple_obfs") || ObjectUtil.isEmpty(ssNode.getObfs())) {
                     // 该单端口是ss单端口节点
                     node.append(getClashMuSSLink(ssNode, obfsParam, user.getUuid()));
                     nodeName.append("      - " + ssNode.getName() + "\n");
