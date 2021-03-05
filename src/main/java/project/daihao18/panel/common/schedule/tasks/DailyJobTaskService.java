@@ -70,13 +70,16 @@ public class DailyJobTaskService {
     // 0 0 0 * * *
     @Transactional
     public void syncTraffic() {
-        log.info(DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + " 执行每日任务");
         // 如果是1号,执行每月任务
         int dayOfMonth = LocalDateTime.now().getDayOfMonth();
         if (dayOfMonth == 1) {
+            log.info(DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + " 执行每月任务");
             this.monthlyJob();
+            log.info("每月任务执行结束");
         } else {
+            log.info(DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + " 执行每日任务");
             this.dailyJob();
+            log.info("每日任务执行结束");
         }
         // 清理所有缓存
         redisService.deleteByKeys("panel::config::*");
@@ -86,7 +89,6 @@ public class DailyJobTaskService {
         redisService.deleteByKeys("panel::plan::*");
         redisService.deleteByKeys("panel::site::*");
         redisService.deleteByKeys("panel::user::*");
-        log.info("每日任务执行结束");
     }
 
     /**
