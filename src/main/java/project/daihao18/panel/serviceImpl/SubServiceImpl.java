@@ -240,11 +240,11 @@ public class SubServiceImpl implements SubService {
             // ss 或 ssr节点不为空,遍历单端口信息
             for (SsNode ssNode : ssNodes) {
                 // 给该mu计算小火箭的ss订阅链接
-                if (ssNode.getObfs().startsWith("simple_obfs")) {
-                    // 该单端口是ss单端口节点
-                    ssSubs += getShadowrocketMuSSLink(ssNode, obfsParam, group);
+                if (ssNode.getObfs().startsWith("simple_obfs") || ObjectUtil.isEmpty(ssNode.getObfs())) {
+                    // 该节点是ss单端口节点
+                    ssSubs += getShadowrocketMuSSLink(ssNode, obfsParam, group, user.getUuid());
                 } else {
-                    // 该单端口是ssr单端口节点
+                    // 该节点是ssr单端口节点
                     ssrSubs += getShadowrocketMuSSRLink(ssNode, obfsParam, protocolParam, group);
                 }
             }
@@ -269,15 +269,23 @@ public class SubServiceImpl implements SubService {
      * @param group
      * @return
      */
-    private String getShadowrocketMuSSLink(SsNode node, String obfsParam, String group) throws UnsupportedEncodingException {
-        String link =
-                Base64.getUrlEncoder().encodeToString((node.getMethod() + ":" + node.getPasswd()).getBytes(StandardCharsets.UTF_8)) + "@" +
-                        node.getServer().split(";")[0] + ":" +
-                        node.getServer().split("#")[1] +
-                        "/?plugin=obfs-local";
-        String suffix = URLEncoder.encode(";obfs=" + node.getObfs().split("_")[2] + ";" +
-                "obfs-host=" + obfsParam, "UTF-8") + "&group=" + Base64.getUrlEncoder().encodeToString(group.getBytes()) + "#" + URLEncoder.encode(node.getName(), "UTF-8");
-        link += suffix;
+    private String getShadowrocketMuSSLink(SsNode node, String obfsParam, String group, String uuid) throws UnsupportedEncodingException {
+        String link = "";
+        if (node.getObfs().startsWith("simple_obfs")) {
+            link = Base64.getUrlEncoder().encodeToString((node.getMethod() + ":" + node.getPasswd()).getBytes(StandardCharsets.UTF_8)) + "@" +
+                    node.getServer().split(";")[0] + ":" +
+                    node.getServer().split("#")[1] +
+                    "/?plugin=obfs-local";
+            String suffix = URLEncoder.encode(";obfs=" + node.getObfs().split("_")[2] + ";" +
+                    "obfs-host=" + obfsParam, "UTF-8") + "&group=" + Base64.getUrlEncoder().encodeToString(group.getBytes()) + "#" + URLEncoder.encode(node.getName(), "UTF-8");
+            link += suffix;
+        }
+        if (ObjectUtil.isEmpty(node.getObfs())) {
+            // 这里passwd用的是和v2ray一样的uuid
+            link = Base64.getUrlEncoder().encodeToString((node.getMethod() + ":" + uuid).getBytes(StandardCharsets.UTF_8)) + "@" +
+                    node.getServer().split(";")[0] + ":" +
+                    node.getServer().split("#")[1];
+        }
         return "ss://" + link + "\n";
     }
 
@@ -397,7 +405,7 @@ public class SubServiceImpl implements SubService {
                 // 给该mu计算小火箭的ss订阅链接
                 if (ssNode.getObfs().startsWith("simple_obfs")) {
                     // 该单端口是ss单端口节点
-                    node.append(getClashMuSSLink(ssNode, obfsParam));
+                    node.append(getClashMuSSLink(ssNode, obfsParam, user.getUuid()));
                     nodeName.append("      - " + ssNode.getName() + "\n");
                 } else {
                     // 该单端口是ssr单端口节点
@@ -438,7 +446,7 @@ public class SubServiceImpl implements SubService {
         return builder.toString();
     }
 
-    private String getClashMuSSLink(SsNode ssNode, String obfsParam) {
+    private String getClashMuSSLink(SsNode ssNode, String obfsParam, String uuid) {
         /*Map<String, Object> ss = new HashMap<>();
         ss.put("name", ssNode.getName());
         ss.put("type", "ss");
@@ -459,12 +467,18 @@ public class SubServiceImpl implements SubService {
         ss += "    server: " + ssNode.getServer().split(";")[0] + "\n";
         ss += "    port: " + ssNode.getServer().split("#")[1] + "\n";
         ss += "    cipher: " + ssNode.getMethod() + "\n";
-        ss += "    password: " + ssNode.getPasswd() + "\n";
+        if (ObjectUtil.isNotEmpty(ssNode.getObfs())) {
+            ss += "    password: " + ssNode.getPasswd() + "\n";
+        } else {
+            ss += "    password: " + uuid + "\n";
+        }
         ss += "    udp: " + true + "\n";
-        ss += "    plugin: " + "obfs\n";
-        ss += "    plugin-opts: " + "\n";
-        ss += "      mode: " + ssNode.getObfs().split("_")[2] + "\n";
-        ss += "      host: " + obfsParam + "\n";
+        if (ssNode.getObfs().startsWith("simple_obfs")) {
+            ss += "    plugin: " + "obfs\n";
+            ss += "    plugin-opts: " + "\n";
+            ss += "      mode: " + ssNode.getObfs().split("_")[2] + "\n";
+            ss += "      host: " + obfsParam + "\n";
+        }
         return ss;
     }
 
@@ -596,15 +610,26 @@ public class SubServiceImpl implements SubService {
                     // ss 节点不为空,遍历单端口信息
                     for (SsNode ssNode : ssNodes) {
                         // 该单端口是ss单端口节点
-                        builder.append(
-                                ssNode.getName() + " = ss, " +
-                                        ssNode.getServer().split(";")[0] + ", " +
-                                        ssNode.getServer().split("#")[1] + ", " +
-                                        "encrypt-method=" + ssNode.getMethod() + ", " +
-                                        "password=" + ssNode.getPasswd() + ", " +
-                                        "obfs=" + ssNode.getObfs().split("_")[2] + ", " +
-                                        "obfs-host=" + obfsParam + ", udp-relay=true\n"
-                        );
+                        if (ssNode.getObfs().startsWith("simple_obfs")) {
+                            builder.append(
+                                    ssNode.getName() + " = ss, " +
+                                            ssNode.getServer().split(";")[0] + ", " +
+                                            ssNode.getServer().split("#")[1] + ", " +
+                                            "encrypt-method=" + ssNode.getMethod() + ", " +
+                                            "password=" + ssNode.getPasswd() + ", " +
+                                            "obfs=" + ssNode.getObfs().split("_")[2] + ", " +
+                                            "obfs-host=" + obfsParam + ", udp-relay=true\n"
+                            );
+                        } else if (ObjectUtil.isEmpty(ssNode.getObfs())) {
+                            builder.append(
+                                    ssNode.getName() + " = ss, " +
+                                            ssNode.getServer().split(";")[0] + ", " +
+                                            ssNode.getServer().split("#")[1] + ", " +
+                                            "encrypt-method=" + ssNode.getMethod() + ", " +
+                                            "password=" + user.getUuid() + ", udp-relay=true\n"
+                            );
+                        }
+
                         nodeName.append(ssNode.getName() + ", ");
                     }
                 }
