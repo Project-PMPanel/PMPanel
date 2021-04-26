@@ -18,4 +18,4 @@ Password: 123456
 
 ### Donate
 
-trc20-usdt: TYTYqQ7gQuCJ2mVGyzhPGWNiMDFhQDPxX1
+trc20-usdt: TGnSCyNujTUT9DYBvTDj4k3JsWdDgaHNU1
