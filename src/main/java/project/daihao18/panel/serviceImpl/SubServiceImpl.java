@@ -12,6 +12,7 @@ import org.springframework.util.DigestUtils;
 import project.daihao18.panel.common.utils.CommonUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.common.utils.IpUtil;
+import project.daihao18.panel.common.utils.UuidUtil;
 import project.daihao18.panel.entity.OperateIp;
 import project.daihao18.panel.entity.SsNode;
 import project.daihao18.panel.entity.User;
@@ -60,6 +61,11 @@ public class SubServiceImpl implements SubService {
         List<SsNode> ssNodeList = getEnableNodes(link);
         if (ObjectUtil.isEmpty(ssNodeList)) {
             return null;
+        }
+        // 如果没有uuid,在这里生成并且更新到数据库
+        if (ObjectUtil.isEmpty(user.getUuid())) {
+            user.setUuid(UuidUtil.uuid3(user.getId() + "|" + user.getPasswd()));
+            userService.updateById(user);
         }
         // 设置订阅链接
         String subUrl = configService.getValueByName("subUrl");
