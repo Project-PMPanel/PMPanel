@@ -44,9 +44,13 @@ public class SubController {
                 break;
             case "surge4":
                 suffix = "conf";
+                break;
         }
-        String fileName = type + "_" + System.currentTimeMillis() / 1000 + "." + suffix;
-        response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+        // 如果订阅是文件类型则下载,否则直接将文本输出到浏览器页面
+        if ("shadowrocket".equals(type) || "clash".equals(type) || "surge4".equals(type)) {
+            String fileName = type + "_" + System.currentTimeMillis() / 1000 + "." + suffix;
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+        }
         return subService.getSubs(link, type, request);
     }
 }

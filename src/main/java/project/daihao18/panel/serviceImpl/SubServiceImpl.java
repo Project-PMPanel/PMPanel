@@ -3,6 +3,7 @@ package project.daihao18.panel.serviceImpl;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,6 +102,8 @@ public class SubServiceImpl implements SubService {
                 return getClashSub(ssNodes, v2rayNodes, user);
             case "surge4":
                 return getSurge4Sub(ssNodes, v2rayNodes, user);
+            case "v2ray":
+                return getV2rayOriginal(v2rayNodes, user);
         }
         return null;
     }
@@ -687,6 +690,35 @@ public class SubServiceImpl implements SubService {
         bfreader.close();
         return builder.toString();
     }
+
+    // ##################################################
+    // 原版V2ray
+    private String getV2rayOriginal(List<SsNode> v2rayNodes, User user) {
+        String nodes = "";
+        String prefix = "vmess://";
+        for (SsNode v2ray : v2rayNodes) {
+            String[] node = v2ray.getServer().split(";");
+            String[] extra = node[5].split("\\|");
+            Map<String, Object> content = new HashMap<>();
+            content.put("v", "2");
+            content.put("ps", v2ray.getName());
+            content.put("add", extra[1].split("=")[1]);
+            content.put("port", Integer.parseInt(node[1]));
+            content.put("type", "none");
+            content.put("id", user.getUuid());
+            content.put("aid", Integer.parseInt(node[2]));
+            content.put("net", node[3]);
+            content.put("path", extra[0]);
+            content.put("host", extra[2]);
+            // TODO 添加tls
+            content.put("tls", "");
+            // 拼接所有节点
+            nodes += prefix + Base64.getEncoder().encodeToString(JSONUtil.toJsonStr(content).getBytes()) + "\n";
+        }
+        return Base64.getEncoder().encodeToString(nodes.getBytes());
+    }
+
+
 
     // ##################################################
     // Other
