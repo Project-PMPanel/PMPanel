@@ -454,10 +454,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (plan.getIsDiscount() && now.before(plan.getDiscountStart()) && now.after(plan.getDiscountEnd())) {
                 return Result.setResult(ResultCodeEnum.PROHIBIT_SALES_ERROR);
             }
-            Plan copyPlan = plan;
+            Plan copyPlan = new Plan();
             // transferEnable, packagee 转GB
-            copyPlan.setTransferEnable(FlowSizeConverterUtil.BytesToGb(copyPlan.getTransferEnable()).longValue());
-            copyPlan.setPackagee(FlowSizeConverterUtil.BytesToGb(copyPlan.getPackagee()).longValue());
+            copyPlan.setTransferEnable(FlowSizeConverterUtil.BytesToGb(plan.getTransferEnable()).longValue());
+            copyPlan.setPackagee(FlowSizeConverterUtil.BytesToGb(plan.getPackagee()).longValue());
+            copyPlan.setNodeSpeedlimit(plan.getNodeSpeedlimit());
+            copyPlan.setNodeConnector(plan.getNodeConnector());
+            copyPlan.setName(plan.getName());
+            copyPlan.setNameEnglish(plan.getNameEnglish());
             copyPlan.setMonths(plan.getMonths());
             copyPlan.setPrice(plan.getPrice());
             copyPlan.setNodeGroup(plan.getNodeGroup());
