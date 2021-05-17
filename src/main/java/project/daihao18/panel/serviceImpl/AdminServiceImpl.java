@@ -3,6 +3,7 @@ package project.daihao18.panel.serviceImpl;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -25,6 +26,7 @@ import project.daihao18.panel.common.schedule.CronTaskRegistrar;
 import project.daihao18.panel.common.schedule.SchedulingRunnable;
 import project.daihao18.panel.common.utils.EmailUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
+import project.daihao18.panel.common.utils.UuidUtil;
 import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.*;
 
@@ -663,6 +665,17 @@ public class AdminServiceImpl implements AdminService {
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
+    }
+
+    @Override
+    @Transactional
+    public Result resetPasswdById(User user) {
+        User toUpdateUser = new User();
+        toUpdateUser.setId(user.getId());
+        toUpdateUser.setPasswd(RandomUtil.randomStringUpper(8));
+        // 重新生成uuid
+        toUpdateUser.setUuid(UuidUtil.uuid3(toUpdateUser.getId() + "|" + toUpdateUser.getPasswd()));
+        return userService.updateById(toUpdateUser) && redisService.del("panel::user::" + toUpdateUser.getId()) ? Result.ok().message("重置成功").messageEnglish("Reset Successfully") : Result.error().message("重置失败").messageEnglish("Reset failed");
     }
 
     @Override

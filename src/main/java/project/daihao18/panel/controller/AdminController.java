@@ -296,6 +296,16 @@ public class AdminController {
         return adminService.deleteUserById(id);
     }
 
+    /**
+     * 根据id重置连接密码
+     * @param user
+     * @return
+     */
+    @PutMapping("/user/passwd")
+    public Result resetPasswdById(@RequestBody User user) {
+        return adminService.resetPasswdById(user);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Plan
 

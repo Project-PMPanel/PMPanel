@@ -72,6 +72,8 @@ public interface AdminService {
 
     Result deleteUserById(Integer id);
 
+    Result resetPasswdById(User user);
+
     Result getPlan(HttpServletRequest request);
 
     Result addPlan(Plan plan);
