@@ -692,7 +692,7 @@ public class SubServiceImpl implements SubService {
     }
 
     // ##################################################
-    // 原版V2ray
+    // SIP002 vmess
     private String getV2rayOriginal(List<SsNode> v2rayNodes, User user) {
         String nodes = "";
         String prefix = "vmess://";
@@ -708,8 +708,8 @@ public class SubServiceImpl implements SubService {
             content.put("id", user.getUuid());
             content.put("aid", Integer.parseInt(node[2]));
             content.put("net", node[3]);
-            content.put("path", extra[0]);
-            content.put("host", extra[2]);
+            content.put("path", extra[0].split("=")[1]);
+            content.put("host", extra[2].split("=")[1]);
             // TODO 添加tls
             content.put("tls", "");
             // 拼接所有节点
