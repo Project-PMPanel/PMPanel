@@ -608,12 +608,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // 已过期, 计算到本月底
             // 当天到月底的天数,包含当天
             BigDecimal toMonthEndDays = new BigDecimal(String.valueOf(DateUtil.betweenDay(now, DateUtil.endOfMonth(now), true) + 1));
-            // 计算到本月底的价格
-            calcPrice = averagePrice.multiply(toMonthEndDays).divide(new BigDecimal(String.valueOf(LocalDate.now().lengthOfMonth())), 2, BigDecimal.ROUND_UP);
-            // 加上剩余月数的价格
-            calcPrice = calcPrice.add(overPrice);
-            // 计算真实到期时间
-            ZonedDateTime zdt = LocalDateTime.now().plusMonths(new BigDecimal(String.valueOf(monthCount - 1)).intValue()).with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault());
+            ZonedDateTime zdt = null;
+            if (monthCount == 1 && toMonthEndDays.intValue() < 15) {
+                // 到当月底不满15天,续费到下个月
+                // 计算到下月底的价格
+                calcPrice = averagePrice.multiply(toMonthEndDays).divide(new BigDecimal(String.valueOf(LocalDate.now().lengthOfMonth())), 2, BigDecimal.ROUND_UP).add(price);
+                // 加上剩余月数的价格
+                calcPrice = calcPrice.add(overPrice);
+                // 计算真实到期时间
+                zdt = LocalDateTime.now().plusMonths(new BigDecimal(String.valueOf(monthCount)).intValue()).with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault());
+            } else {
+                // 计算到本月底的价格
+                calcPrice = averagePrice.multiply(toMonthEndDays).divide(new BigDecimal(String.valueOf(LocalDate.now().lengthOfMonth())), 2, BigDecimal.ROUND_UP);
+                // 加上剩余月数的价格
+                calcPrice = calcPrice.add(overPrice);
+                // 计算真实到期时间
+                zdt = LocalDateTime.now().plusMonths(new BigDecimal(String.valueOf(monthCount - 1)).intValue()).with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0).atZone(ZoneId.systemDefault());
+            }
             calcExpire = Date.from(zdt.toInstant());
         } else {
             // 未过期就是默认价格*续费月数以及当前时长+续费月数
