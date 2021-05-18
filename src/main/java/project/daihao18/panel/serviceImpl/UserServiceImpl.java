@@ -458,6 +458,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // transferEnable, packagee 转GB
             copyPlan.setTransferEnable(FlowSizeConverterUtil.BytesToGb(plan.getTransferEnable()).longValue());
             copyPlan.setPackagee(FlowSizeConverterUtil.BytesToGb(plan.getPackagee()).longValue());
+            copyPlan.setClazz(plan.getClazz());
             copyPlan.setNodeSpeedlimit(plan.getNodeSpeedlimit());
             copyPlan.setNodeConnector(plan.getNodeConnector());
             copyPlan.setName(plan.getName());
