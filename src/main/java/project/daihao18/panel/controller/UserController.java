@@ -62,6 +62,16 @@ public class UserController {
     }
 
     /**
+     * 获取流量详情
+     * @param request
+     * @return
+     */
+    @GetMapping("/trafficDetails")
+    public Result getTrafficDetails(HttpServletRequest request) {
+        return userService.getTrafficDetails(JwtTokenUtil.getUser(request).getId());
+    }
+
+    /**
      * 重置邀请码
      * @param request
      * @return

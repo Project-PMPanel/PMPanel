@@ -101,6 +101,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private TutorialService tutorialService;
 
+    @Autowired
+    private UserMonthlyTrafficService userMonthlyTrafficService;
+
+    @Autowired
+    private UserTrafficLogService userTrafficLogService;
+
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
         User user = this.getUserById(Integer.parseInt(id), false);
@@ -1382,5 +1388,52 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .gt("class", 0)
                 .gt("reg_date", DateUtil.beginOfDay(beginOfMonth));
         return this.count(userQueryWrapper);
+    }
+
+    @Override
+    public Result getTrafficDetails(Integer userId) {
+        List<Map<String, Object>> monthList = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        // 本月的第一天00:00:00
+        LocalDateTime monthBeginTimeStart = now.with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
+        // 本月的最后一天23:59:59
+        LocalDateTime monthEndTimeEnd = now.with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
+
+        // 查当月每天的流量
+        QueryWrapper<UserMonthlyTraffic> userMonthlyTrafficQueryWrapper = new QueryWrapper<>();
+        userMonthlyTrafficQueryWrapper
+                .gt("date", monthBeginTimeStart)
+                .le("date", monthEndTimeEnd)
+                .eq("user_id", userId);
+        List<UserMonthlyTraffic> traffics = userMonthlyTrafficService.list(userMonthlyTrafficQueryWrapper);
+        if (ObjectUtil.isNotEmpty(traffics)) {
+            for (UserMonthlyTraffic traffic : traffics) {
+                Map<String, Object> map = new HashMap<>();
+                Map<String, Object> map2 = new HashMap<>();
+                map.put("day", DateUtil.dayOfMonth(traffic.getDate()) + "号");
+                map.put("traffic", "上传");
+                map.put("value", FlowSizeConverterUtil.BytesToMb(traffic.getU()));
+                map2.put("day",DateUtil.dayOfMonth(traffic.getDate()) + "号");
+                map2.put("traffic", "下载");
+                map2.put("value",FlowSizeConverterUtil.BytesToMb(traffic.getD()));
+                monthList.add(map);
+                monthList.add(map2);
+            }
+        }
+        // 统计今日流量
+        List<Map<String, Object>> todayTraffic = userTrafficLogService.getTodayTraffic();
+        if (todayTraffic.size() > 0) {
+            Map<String, Object> map = new HashMap<>();
+            Map<String, Object> map2 = new HashMap<>();
+            map.put("day", DateUtil.dayOfMonth(new Date()) + "号");
+            map.put("traffic", "上传");
+            map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("u"))))));
+            map2.put("day",DateUtil.dayOfMonth(new Date()) + "号");
+            map2.put("traffic", "下载");
+            map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("d"))))));
+            monthList.add(map);
+            monthList.add(map2);
+        }
+        return Result.ok().data("trafficDetails", monthList);
     }
 }

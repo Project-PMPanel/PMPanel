@@ -17,5 +17,7 @@ public interface UserTrafficLogService extends IService<UserTrafficLog> {
 
     void monthlyJobTask();
 
+    List<Map<String, Object>> getTodayTraffic();
+
     List<Map<String, Object>> getYesterdayTraffic();
 }

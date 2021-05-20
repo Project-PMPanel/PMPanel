@@ -25,6 +25,17 @@ public class FlowSizeConverterUtil {
     }
 
     /**
+     * 字节转换MB
+     *
+     * @param bytes
+     * @return
+     */
+    public static Integer BytesToMb(Long bytes) {
+        Long result = bytes.longValue() / 1048576;
+        return result.intValue();
+    }
+
+    /**
      * GB转换字节
      *
      * @param gb

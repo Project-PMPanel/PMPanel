@@ -112,4 +112,6 @@ public interface UserService extends IService<User> {
     List<User> getExpiredUser();
 
     Object getMonthPaidUserCount();
+
+    Result getTrafficDetails(Integer userId);
 }
