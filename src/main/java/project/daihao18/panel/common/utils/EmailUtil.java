@@ -86,7 +86,7 @@ public class EmailUtil {
                 }
             }
             // 生成一个有效期5分钟的6位验证码
-            String checkCode = RandomUtil.randomStringUpper(6);
+            String checkCode = RandomUtil.randomNumbers(6);
             if (emailType == 0) {
                 redisService.set("panel::RegCheckCode::" + sendTo, checkCode, 300);
             } else if (emailType == 1) {
