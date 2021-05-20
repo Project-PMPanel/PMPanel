@@ -1166,7 +1166,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             userUpdateWrapper
                     .setSql("money=money-" + withdraw.getAmount())
                     .eq("id", withdraw.getUserId());
-            return this.update(userUpdateWrapper) && redisService.del("panel::user::" + user.getId()) ? Result.ok().message("已发起提现申请,请等待审核").messageEnglish("Please wait for review") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+            if (this.update(userUpdateWrapper)) {
+                // 删除该用户缓存
+                redisService.del("panel::user::" + user.getId());
+                // 给管理员发信
+                QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+                userQueryWrapper
+                        .select("email")
+                        .eq("is_admin", 1);
+                List<User> admins = this.list(userQueryWrapper);
+                for (User admin : admins) {
+                    EmailUtil.sendEmail("有新的提现需要处理~", "有新的提现单待处理~", false, admin.getEmail());
+                }
+                return Result.ok().message("已发起提现申请,请等待审核").messageEnglish("Please wait for review");
+            } else {
+                return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+            }
         }
         return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
@@ -1219,7 +1234,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     .eq("id", ticket.getParentId());
             ticketService.update(ticketUpdateWrapper);
         }
-        return ticketService.save(ticket) ? Result.ok().message("提交成功").messageEnglish("Submit successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        if (ticketService.save(ticket)) {
+            QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+            userQueryWrapper
+                    .select("email")
+                    .eq("is_admin", 1);
+            List<User> admins = this.list(userQueryWrapper);
+            for (User admin : admins) {
+                EmailUtil.sendEmail("新的工单提醒~", "有新的工单待处理~", false, admin.getEmail());
+            }
+            return Result.ok().message("提交成功").messageEnglish("Submit successfully");
+        } else {
+            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
     }
 
     @Override
