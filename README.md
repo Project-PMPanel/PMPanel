@@ -1,7 +1,15 @@
 # PMPanel
 The Proxy Manage Panel is an open source web application which can manage shadowsocks(r) & v2ray.
 
-### Preview: [DEMO](https://yyds.me)
+1. [PMPanel User Repo](https://github.com/ByteInternetHK/PMPanelUser)
+
+2. [PMPanel Admin Repo](https://github.com/ByteInternetHK/PMPanelAdmin)
+
+3. [PMPanel Webapi Repo](https://github.com/ByteInternetHK/PMPanelWebapi)
+
+---
+
+### [Preview Site](https://yyds.me)
 Account: pmpanel@yyds.me
 
 Password: 123456
@@ -12,7 +20,7 @@ Password: 123456
 
 [TG Channel](https://t.me/PMPanel)
 
-[TG Group](https://t.me/joinchat/Ipca_04fYWM0XPaTIbw4Dw)
+[TG Group](https://t.me/pmpanel_group)
 
 ---
 
