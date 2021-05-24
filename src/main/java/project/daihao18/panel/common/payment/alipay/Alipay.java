@@ -133,11 +133,11 @@ public class Alipay {
         // 设置通知的domain(本站域名)
         order.setDomain(alipayConfig.get("domain").toString());
         // 获取订单标题
-        String subject = configService.getValueByName("siteName");
+        String subject = "";
         if ("plan".equals(order.getType())) {
-            subject = subject.concat(" - " + orderService.getOrderByOrderId(order.getId()).getPlanDetailsMap().get("name").toString());
+            subject = subject.concat(orderService.getOrderByOrderId(order.getId()).getPlanDetailsMap().get("name").toString());
         } else {
-            subject = subject.concat(" - " + FlowSizeConverterUtil.BytesToGb(packageService.getById(order.getId()).getTransferEnable()) + " GB");
+            subject = subject.concat(FlowSizeConverterUtil.BytesToGb(packageService.getById(order.getId()).getTransferEnable()) + " GB");
         }
         // 通过请求的是pc 还是 h5来自动选择
         Map<String, Object> result = new HashMap<>();
