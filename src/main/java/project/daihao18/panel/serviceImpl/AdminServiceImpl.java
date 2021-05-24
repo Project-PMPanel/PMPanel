@@ -737,7 +737,21 @@ public class AdminServiceImpl implements AdminService {
                     .eq("id", ticket.getParentId());
             ticketService.update(ticketUpdateWrapper);
         }
-        return ticketService.save(ticket) ? Result.ok().message("回复成功").messageEnglish("Reply successfully") : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        if (ticketService.save(ticket)) {
+            QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+            userQueryWrapper
+                    .select("id", "email")
+                    .eq("is_admin", 1);
+            List<User> admins = userService.list(userQueryWrapper);
+            List<Integer> ids = admins.stream().map(User::getId).collect(Collectors.toList());
+            if (ids.contains(userId)) {
+                // send to user
+                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, userService.getById(userId).getEmail());
+            }
+            return Result.ok().message("回复成功").messageEnglish("Reply successfully");
+        } else {
+            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
     }
 
     @Override
