@@ -746,7 +746,8 @@ public class AdminServiceImpl implements AdminService {
             List<Integer> ids = admins.stream().map(User::getId).collect(Collectors.toList());
             if (ids.contains(userId)) {
                 // send to user
-                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, userService.getById(userId).getEmail());
+                Ticket parentTicket = ticketService.getById(ticket.getParentId());
+                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, userService.getById(parentTicket.getUserId()).getEmail());
             }
             return Result.ok().message("回复成功").messageEnglish("Reply successfully");
         } else {
