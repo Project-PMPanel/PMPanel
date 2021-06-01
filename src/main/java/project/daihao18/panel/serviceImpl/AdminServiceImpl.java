@@ -675,6 +675,8 @@ public class AdminServiceImpl implements AdminService {
         toUpdateUser.setPasswd(RandomUtil.randomStringUpper(8));
         // 重新生成uuid
         toUpdateUser.setUuid(UuidUtil.uuid3(toUpdateUser.getId() + "|" + toUpdateUser.getPasswd()));
+        // 重新生成订阅
+        toUpdateUser.setLink(RandomUtil.randomString(10));
         return userService.updateById(toUpdateUser) && redisService.del("panel::user::" + toUpdateUser.getId()) ? Result.ok().message("重置成功").messageEnglish("Reset Successfully") : Result.error().message("重置失败").messageEnglish("Reset failed");
     }
 
