@@ -114,4 +114,10 @@ public interface UserService extends IService<User> {
     Object getMonthPaidUserCount();
 
     Result getTrafficDetails(Integer userId);
+
+    User getUserByUUID(String uuid);
+
+    User getUserByTgId(Integer tgId);
+
+    List<User> getAdmins();
 }

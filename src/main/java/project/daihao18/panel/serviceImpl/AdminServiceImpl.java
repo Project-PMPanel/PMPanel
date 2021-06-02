@@ -10,6 +10,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.SendMessage;
 import lombok.extern.slf4j.Slf4j;
 import net.ipip.ipdb.City;
 import net.ipip.ipdb.CityInfo;
@@ -103,6 +105,9 @@ public class AdminServiceImpl implements AdminService {
 
     @Autowired
     private CronTaskRegistrar cronTaskRegistrar;
+
+    @Autowired
+    private TelegramBot bot;
 
     @Override
     public Result getDashboardInfo() {
@@ -740,16 +745,17 @@ public class AdminServiceImpl implements AdminService {
             ticketService.update(ticketUpdateWrapper);
         }
         if (ticketService.save(ticket)) {
-            QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-            userQueryWrapper
-                    .select("id", "email")
-                    .eq("is_admin", 1);
-            List<User> admins = userService.list(userQueryWrapper);
+            List<User> admins = userService.getAdmins();
             List<Integer> ids = admins.stream().map(User::getId).collect(Collectors.toList());
             if (ids.contains(userId)) {
                 // send to user
                 Ticket parentTicket = ticketService.getById(ticket.getParentId());
-                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, userService.getById(parentTicket.getUserId()).getEmail());
+                User user = userService.getById(parentTicket.getUserId());
+                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, user.getEmail());
+                // tg bot
+                if (ObjectUtil.isNotEmpty(user.getTgId())) {
+                    bot.execute(new SendMessage(user.getTgId(), "您提交的工单已回复"));
+                }
             }
             return Result.ok().message("回复成功").messageEnglish("Reply successfully");
         } else {

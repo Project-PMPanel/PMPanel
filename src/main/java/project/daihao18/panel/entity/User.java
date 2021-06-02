@@ -188,6 +188,11 @@ public class User implements Serializable, UserDetails {
     private Date regDate;
 
     /**
+     * tg的ID
+     */
+    private Integer tgId;
+
+    /**
      * 是否是管理员
      */
     private Integer isAdmin;

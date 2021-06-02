@@ -12,6 +12,8 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.SendMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
@@ -106,6 +108,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private UserTrafficLogService userTrafficLogService;
+
+    @Autowired
+    private TelegramBot bot;
 
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
@@ -1235,13 +1240,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             ticketService.update(ticketUpdateWrapper);
         }
         if (ticketService.save(ticket)) {
-            QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-            userQueryWrapper
-                    .select("email")
-                    .eq("is_admin", 1);
-            List<User> admins = this.list(userQueryWrapper);
+            List<User> admins = this.getAdmins();
             for (User admin : admins) {
                 EmailUtil.sendEmail("新的工单提醒~", "有新的工单待处理~", false, admin.getEmail());
+                if (ObjectUtil.isNotEmpty(admin.getTgId())) {
+                    bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
+                }
             }
             return Result.ok().message("提交成功").messageEnglish("Submit successfully");
         } else {
@@ -1462,5 +1466,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             monthList.add(map2);
         }
         return Result.ok().data("trafficDetails", monthList);
+    }
+
+    @Override
+    public User getUserByUUID(String uuid) {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .eq("uuid", uuid);
+        return this.getOne(userQueryWrapper);
+    }
+
+    @Override
+    public User getUserByTgId(Integer tgId) {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .eq("tg_id", tgId);
+        return this.getOne(userQueryWrapper);
+    }
+
+    @Override
+    public List<User> getAdmins() {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .eq("is_admin", 1);
+        return this.list(userQueryWrapper);
     }
 }
