@@ -16,6 +16,7 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -111,6 +112,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private TelegramBot bot;
+
+    @Value("${setting.botUsername}")
+    private String botUsername;
 
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
@@ -1490,5 +1494,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         userQueryWrapper
                 .eq("is_admin", 1);
         return this.list(userQueryWrapper);
+    }
+
+    @Override
+    public Result getTGConfig() {
+        return Result.ok().data("botUsername", botUsername);
     }
 }

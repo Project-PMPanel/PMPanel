@@ -120,4 +120,6 @@ public interface UserService extends IService<User> {
     User getUserByTgId(Integer tgId);
 
     List<User> getAdmins();
+
+    Result getTGConfig();
 }

@@ -384,4 +384,9 @@ public class UserController {
         User user1 = JwtTokenUtil.getUser(request);
         return userService.changeEmail(user.getCheckCode(), user.getNewCheckCode(), user1.getEmail(), user.getEmail(), user1.getId());
     }
+
+    @GetMapping("/tgconfig")
+    public Result getTGConfig() {
+        return userService.getTGConfig();
+    }
 }
