@@ -44,20 +44,25 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
-        try {
-            if (enableTGBot) {
-                runBot();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Lock lock = new ReentrantLock();
+                lock.lock();
+                try {
+                    if (enableTGBot) {
+                        runBot();
+                    }
+                } catch (Exception e) {
+                    log.error(e.getMessage() + ", restarting bot...");
+                    if (enableTGBot) {
+                        runBot();
+                    }
+                } finally {
+                    lock.unlock();
+                }
             }
-        } catch (Exception e) {
-            log.error(e.getMessage() + ", restarting bot...");
-            if (enableTGBot) {
-                runBot();
-            }
-        } finally {
-            lock.unlock();
-        }
+        }).start();
     }
 
     public void runBot() {
@@ -67,12 +72,12 @@ public class TelegramBotRunner implements ApplicationRunner {
             List<Update> updates = bot.execute(new GetUpdates().limit(100).offset(m).timeout(0)).updates();
             if (ObjectUtil.isNotEmpty(updates)) {
                 for (Update update : updates) {
-                    log.info(update.toString());
+                    log.debug(update.toString());
                     m = update.updateId() + 1;
                     String text = "";
                     Message message = update.message();
                     if (ObjectUtil.isNotEmpty(message)) {
-                        log.info(message.toString());
+                        log.debug(message.toString());
                         // 处理私聊bot command消息
                         if (message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.Private)) {
                             if (message.text().startsWith("/start")) {
