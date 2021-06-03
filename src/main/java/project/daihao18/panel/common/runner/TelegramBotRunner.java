@@ -20,6 +20,7 @@ import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.entity.Ticket;
 import project.daihao18.panel.entity.User;
 import project.daihao18.panel.service.ConfigService;
+import project.daihao18.panel.service.RedisService;
 import project.daihao18.panel.service.UserService;
 
 import java.util.List;
@@ -41,6 +42,9 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     @Autowired
     private ConfigService configService;
+
+    @Autowired
+    private RedisService redisService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -106,6 +110,7 @@ public class TelegramBotRunner implements ApplicationRunner {
         if (ObjectUtil.isEmpty(user.getTgId())) {
             user.setTgId(message.from().id());
             if (userService.updateById(user)) {
+                redisService.del("panel::user::" + user.getId());
                 log.info("用户:" + user.getEmail() + ", 绑定TG成功");
                 bot.execute(new SendMessage(message.from().id(), "绑定成功"));
             }

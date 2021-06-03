@@ -1500,4 +1500,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Result getTGConfig() {
         return Result.ok().data("botUsername", botUsername);
     }
+
+    @Override
+    public Result unBindTG(Integer id) {
+        UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
+        userUpdateWrapper
+                .set("tg_id", null)
+                .eq("id", id);
+        return this.update(userUpdateWrapper) && redisService.del("panel::user::" + id) ? Result.ok().message("解绑成功").messageEnglish("Unbinding Successfully") : Result.error().message("解绑失败").messageEnglish("Failed");
+    }
 }

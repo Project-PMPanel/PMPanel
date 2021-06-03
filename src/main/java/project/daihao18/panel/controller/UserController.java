@@ -385,8 +385,17 @@ public class UserController {
         return userService.changeEmail(user.getCheckCode(), user.getNewCheckCode(), user1.getEmail(), user.getEmail(), user1.getId());
     }
 
+    /**
+     * 获取tg配置(tg bot username)
+     * @return
+     */
     @GetMapping("/tgconfig")
     public Result getTGConfig() {
         return userService.getTGConfig();
+    }
+
+    @PostMapping("/unBindTG")
+    public Result unBindTG(HttpServletRequest request) {
+        return userService.unBindTG(JwtTokenUtil.getId(request));
     }
 }
