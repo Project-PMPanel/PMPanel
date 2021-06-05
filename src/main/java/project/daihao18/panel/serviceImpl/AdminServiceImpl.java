@@ -736,6 +736,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public Result saveTicket(Integer userId, Ticket ticket, String type) {
         ticket.setUserId(userId);
+        ticket.setTime(new Date());
         if ("reply".equals(type)) {
             // 将该ticket的父ticket状态置0
             UpdateWrapper<Ticket> ticketUpdateWrapper = new UpdateWrapper<>();
