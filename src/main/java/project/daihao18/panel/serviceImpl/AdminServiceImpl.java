@@ -993,6 +993,12 @@ public class AdminServiceImpl implements AdminService {
             funds.setContentEnglish("Withdrawal");
             funds.setRelatedOrderId(withdraw.getId().toString());
             if (fundsService.save(funds)) {
+                // 发送消息给用户
+                User user = userService.getById(withdraw.getUserId());
+                EmailUtil.sendEmail("提现到账提醒", "您申请的提现已到账,请注意查看", false, user.getEmail());
+                if (ObjectUtil.isNotEmpty(user.getTgId())) {
+                    bot.execute(new SendMessage(user.getTgId(), "您申请的提现已到账,请注意查看"));
+                }
                 return Result.ok().message("操作成功").messageEnglish("Successfully");
             }
         }
