@@ -83,7 +83,7 @@ public class TelegramBotRunner implements ApplicationRunner {
                     if (ObjectUtil.isNotEmpty(message)) {
                         log.debug(message.toString());
                         // 处理私聊bot command消息
-                        if (message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.Private)) {
+                        if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.Private)) {
                             if (message.text().startsWith("/start")) {
                                 handleStart(message);
                             } else if (message.text().startsWith("/site")) {
@@ -94,7 +94,7 @@ public class TelegramBotRunner implements ApplicationRunner {
                                 handleTicket(message);
                             }
                         // 处理群组bot command消息
-                        } else if (message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.supergroup)) {
+                        } else if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.supergroup)) {
 
                         }
                     }
