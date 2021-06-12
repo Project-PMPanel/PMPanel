@@ -2,6 +2,7 @@ package project.daihao18.panel.common.runner;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
@@ -23,6 +24,7 @@ import project.daihao18.panel.service.ConfigService;
 import project.daihao18.panel.service.RedisService;
 import project.daihao18.panel.service.UserService;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,6 +35,15 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     @Value("${setting.enableTGBot}")
     private Boolean enableTGBot;
+
+    @Value("${setting.checkin.enable}")
+    private Boolean enableCheckin;
+
+    @Value("${setting.checkin.min}")
+    private Integer checkinMin;
+
+    @Value("${setting.checkin.max}")
+    private Integer checkinMax;
 
     @Autowired
     private TelegramBot bot;
@@ -94,8 +105,12 @@ public class TelegramBotRunner implements ApplicationRunner {
                                 handleTicket(message);
                             }
                         // 处理群组bot command消息
-                        } else if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.supergroup)) {
-
+                        } else if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && (message.chat().type().equals(Chat.Type.group) || message.chat().type().equals(Chat.Type.supergroup))) {
+                            if (message.text().startsWith("/checkin")) {
+                                if (enableCheckin) {
+                                    handleCheckIn(message);
+                                }
+                            }
                         }
                     }
                 }
@@ -173,6 +188,28 @@ public class TelegramBotRunner implements ApplicationRunner {
                     bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
                 }
             }
+        }
+    }
+
+    private void handleCheckIn(Message message) {
+        // 判断该用户是否为有效用户
+        User user = userService.getUserByTgId(message.from().id());
+        if (ObjectUtil.isEmpty(user)) {
+            return;
+        }
+        // handleCheckIn
+        Integer mb = RandomUtil.randomInt(checkinMin, checkinMax);
+        // if checked in, return
+        if (ObjectUtil.isNotEmpty(user.getCheckinTime()) && user.getCheckinTime().after(DateUtil.beginOfDay(new Date()))) {
+            bot.execute(new SendMessage(message.chat().id(), "今天已经签到过啦~").replyToMessageId(message.messageId()));
+            return;
+        }
+        user.setTransferEnable(user.getTransferEnable() + mb * 1024 * 1024);
+        user.setCheckinTime(new Date());
+        if (userService.updateById(user)) {
+            redisService.del("panel::user::" + user.getId());
+            log.info("用户:" + user.getEmail() + "签到成功,流量" + mb + "mb");
+            bot.execute(new SendMessage(message.chat().id(), "签到成功,流量" + mb + "mb").replyToMessageId(message.messageId()));
         }
     }
 }

@@ -193,6 +193,11 @@ public class User implements Serializable, UserDetails {
     private Integer tgId;
 
     /**
+     * 签到时间
+     */
+    private Date checkinTime;
+
+    /**
      * 是否是管理员
      */
     private Integer isAdmin;

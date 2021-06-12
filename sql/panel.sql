@@ -455,6 +455,7 @@ CREATE TABLE `user` (
   `reg_date` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
   `tg_id` int(11) NULL COMMENT 'tg的id',
   `last_used_date` datetime NULL COMMENT '上次使用时间',
+  `checkin_time` datetime NULL COMMENT '上次签到时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `EMAIL_UNIQUE` (`email`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
