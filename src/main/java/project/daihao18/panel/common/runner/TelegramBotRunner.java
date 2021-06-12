@@ -105,17 +105,21 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     private void handleStart(Message message) {
         // 用户启用bot,根据uuid查该用户
-        String uuid = message.text().split(" ")[1];
-        User user = userService.getUserByUUID(uuid);
-        if (ObjectUtil.isEmpty(user.getTgId())) {
-            user.setTgId(message.from().id());
-            if (userService.updateById(user)) {
-                redisService.del("panel::user::" + user.getId());
-                log.info("用户:" + user.getEmail() + ", 绑定TG成功");
-                bot.execute(new SendMessage(message.from().id(), "绑定成功"));
+        if (message.text().split(" ").length > 1) {
+            String uuid = message.text().split(" ")[1];
+            User user = userService.getUserByUUID(uuid);
+            if (ObjectUtil.isNotEmpty(user) && ObjectUtil.isEmpty(user.getTgId())) {
+                user.setTgId(message.from().id());
+                if (userService.updateById(user)) {
+                    redisService.del("panel::user::" + user.getId());
+                    log.info("用户:" + user.getEmail() + ", 绑定TG成功");
+                    bot.execute(new SendMessage(message.from().id(), "绑定成功"));
+                }
+            } else {
+                bot.execute(new SendMessage(message.from().id(), "请解绑后重新进行绑定"));
             }
         } else {
-            bot.execute(new SendMessage(message.from().id(), "请解绑后重新进行绑定"));
+            bot.execute(new SendMessage(message.from().id(), "参数错误"));
         }
     }
 
