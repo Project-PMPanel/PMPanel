@@ -197,6 +197,11 @@ public class TelegramBotRunner implements ApplicationRunner {
         if (ObjectUtil.isEmpty(user)) {
             return;
         }
+        // if class <= 0 or expired, return
+        if (user.getClazz() <= 0 || user.getExpireIn().before(new Date())) {
+            bot.execute(new SendMessage(message.chat().id(), "当前无会员等级或已过期,请购买套餐后再签到喔~").replyToMessageId(message.messageId()));
+            return;
+        }
         // handleCheckIn
         Integer mb = RandomUtil.randomInt(checkinMin, checkinMax);
         // if checked in, return
