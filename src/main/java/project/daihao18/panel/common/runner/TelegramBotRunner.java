@@ -8,8 +8,7 @@ import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.MessageEntity;
 import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.request.GetUpdates;
-import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +23,7 @@ import project.daihao18.panel.service.ConfigService;
 import project.daihao18.panel.service.RedisService;
 import project.daihao18.panel.service.UserService;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -35,6 +35,12 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     @Value("${setting.enableTGBot}")
     private Boolean enableTGBot;
+
+    @Value("${setting.enableVerifyTG}")
+    private Boolean enableVerifyTG;
+
+    @Value("${setting.chatid}")
+    private Object chatid;
 
     @Value("${setting.checkin.enable}")
     private Boolean enableCheckin;
@@ -103,12 +109,31 @@ public class TelegramBotRunner implements ApplicationRunner {
                                 handleInfo(message);
                             } else if (message.text().startsWith("/ticket")) {
                                 handleTicket(message);
-                            }
-                        // 处理群组bot command消息
-                        } else if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && (message.chat().type().equals(Chat.Type.group) || message.chat().type().equals(Chat.Type.supergroup))) {
-                            if (message.text().startsWith("/checkin")) {
+                            } else if (message.text().startsWith("/checkin")) {
                                 if (enableCheckin) {
                                     handleCheckIn(message);
+                                }
+                            } else if (message.text().startsWith("/bc")) {
+                                handleBroadCast(message);
+                            }
+                        // 绑定tg后入群,否则直接拉黑
+                        } else if (message.chat().type().equals(Chat.Type.group) || message.chat().type().equals(Chat.Type.supergroup)) {
+                            // 获取chat id
+                            if (ObjectUtil.isNotEmpty(message.text()) && message.text().startsWith("/chatid")) {
+                                bot.execute(new SendMessage(message.chat().id(), message.chat().id().toString()));
+                            }
+                            if (ObjectUtil.isNotEmpty(message.newChatMembers())) {
+                                List<com.pengrad.telegrambot.model.User> tgUsers = Arrays.asList(message.newChatMembers());
+                                if (ObjectUtil.isNotEmpty(tgUsers)) {
+                                    for (com.pengrad.telegrambot.model.User user : tgUsers) {
+                                        User existUser = userService.getUserByTgId(user.id());
+                                        if (ObjectUtil.isEmpty(existUser)) {
+                                            // 踢出群
+                                            bot.execute(new KickChatMember(message.chat().id(), user.id()));
+                                            // 从黑名单解封
+                                            // bot.execute(new UnbanChatMember(id, user.id()));
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -129,6 +154,12 @@ public class TelegramBotRunner implements ApplicationRunner {
                     redisService.del("panel::user::" + user.getId());
                     log.info("用户:" + user.getEmail() + ", 绑定TG成功");
                     bot.execute(new SendMessage(message.from().id(), "绑定成功"));
+                    // 发送群组链接
+                    if (enableVerifyTG) {
+                        // get new invite link
+                        String link = bot.execute(new ExportChatInviteLink(chatid)).result();
+                        bot.execute(new SendMessage(message.from().id(), "欢迎加入tg群组: " + link));
+                    }
                 }
             } else {
                 bot.execute(new SendMessage(message.from().id(), "请解绑后重新进行绑定"));
@@ -195,6 +226,7 @@ public class TelegramBotRunner implements ApplicationRunner {
         // 判断该用户是否为有效用户
         User user = userService.getUserByTgId(message.from().id());
         if (ObjectUtil.isEmpty(user)) {
+            bot.execute(new SendMessage(message.from().id(), "非法越权"));
             return;
         }
         // if class <= 0 or expired, return
@@ -215,6 +247,25 @@ public class TelegramBotRunner implements ApplicationRunner {
             redisService.del("panel::user::" + user.getId());
             log.info("用户:" + user.getEmail() + "签到成功,流量" + mb + "mb");
             bot.execute(new SendMessage(message.chat().id(), "签到成功,流量" + mb + "mb").replyToMessageId(message.messageId()));
+        }
+    }
+
+    private void handleBroadCast(Message message) {
+        // 判断该用户是否为管理员
+        User user = userService.getUserByTgId(message.from().id());
+        if (ObjectUtil.isEmpty(user)) {
+            return;
+        }
+        List<User> admins = userService.getAdmins();
+        for (User admin : admins) {
+            if (ObjectUtil.equals(admin.getId(), user.getId())) {
+                // 是管理员,对所有绑定tg的用户广播tg消息
+                List<User> tgUsers = userService.getTGUsers();
+                for (User tg : tgUsers) {
+                    bot.execute(new SendMessage(tg.getTgId(), message.text().split(" ")[1]));
+                }
+                break;
+            }
         }
     }
 }

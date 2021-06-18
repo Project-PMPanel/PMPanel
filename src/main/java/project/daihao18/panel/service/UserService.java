@@ -124,4 +124,6 @@ public interface UserService extends IService<User> {
     Result getTGConfig();
 
     Result unBindTG(Integer id);
+
+    List<User> getTGUsers();
 }

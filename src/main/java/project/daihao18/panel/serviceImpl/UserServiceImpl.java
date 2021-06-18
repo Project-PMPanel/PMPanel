@@ -1510,4 +1510,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .eq("id", id);
         return this.update(userUpdateWrapper) && redisService.del("panel::user::" + id) ? Result.ok().message("解绑成功").messageEnglish("Unbinding Successfully") : Result.error().message("解绑失败").messageEnglish("Failed");
     }
+
+    @Override
+    public List<User> getTGUsers() {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .select("tg_id")
+                .isNotNull("tg_id");
+        return this.list(userQueryWrapper);
+    }
 }
