@@ -358,7 +358,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setDisconnectIp("");
         user.setIsMultiUser(0);
         user.setRegDate(new Date());
-        return this.save(user) ? Result.ok() : Result.error();
+        if (this.save(user)) {
+            // 删除后台分页查询用户的缓存
+            redisService.deleteByKeys("panel::user::users::*");
+            return Result.ok();
+        } else {
+            return Result.error();
+        }
     }
 
     @Override
