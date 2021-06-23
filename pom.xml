@@ -10,7 +10,7 @@
     </parent>
     <groupId>project.daihao18</groupId>
     <artifactId>pmpanel</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <name>panel_backend</name>
     <description>daihao18's pmpanel project</description>
 
@@ -121,6 +121,26 @@
             <groupId>com.github.pengrad</groupId>
             <artifactId>java-telegram-bot-api</artifactId>
             <version>5.1.0</version>
+        </dependency>
+
+        <!--oauth-->
+        <dependency>
+            <groupId>me.zhyd.oauth</groupId>
+            <artifactId>JustAuth</artifactId>
+            <version>1.16.1</version>
+        </dependency>
+
+        <!--okhttp-->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.8.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-stdlib-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
     </dependencies>

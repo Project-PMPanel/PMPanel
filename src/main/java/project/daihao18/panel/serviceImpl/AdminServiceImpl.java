@@ -276,6 +276,18 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public Result getOauthConfig() {
+        Map<String, Object> oauthConfig;
+        String config = configService.getValueByName("oauthConfig");
+        if (ObjectUtil.isNotEmpty(config)) {
+            oauthConfig = JSONUtil.toBean(config, Map.class);
+        } else {
+            oauthConfig = null;
+        }
+        return Result.ok().data("oauthConfig", oauthConfig);
+    }
+
+    @Override
     public Result getClientConfig() {
         Map<String, Object> clientConfig;
         String config = configService.getValueByName("clientConfig");

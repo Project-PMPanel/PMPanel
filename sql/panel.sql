@@ -527,6 +527,24 @@ CREATE TABLE `ticket`  (
 ALTER TABLE `ticket`
 ADD CONSTRAINT `ticket_parent_id` FOREIGN KEY (`parent_id`) REFERENCES `ticket` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- ----------------------------
+-- Table structure for oauth
+-- ----------------------------
+DROP TABLE IF EXISTS `oauth`;
+CREATE TABLE `oauth`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'oauth主键',
+  `user_id` int(11) NULL COMMENT '用户id',
+  `oauth_type` varchar(10) NULL COMMENT '哪个第三方系统的oauth',
+  `email` varchar(50) NULL COMMENT '邮箱',
+  `uuid` varchar(50) NULL COMMENT '第三方系统唯一识别号',
+  `time` datetime(0) NULL COMMENT '绑定时间',
+  `valid` int(1) NULL COMMENT '绑定是否有效',
+  PRIMARY KEY (`id`)
+);
+
+ALTER TABLE `oauth`
+ADD CONSTRAINT `oauth_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (1, 'siteName', 'PMPanel');
@@ -554,6 +572,7 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (301, 'muSuffix', 'download.w
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (302, 'userTrafficLogLimitDays', '3');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (401, 'clientConfig', '');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (402, 'renewMail', '<div style=\"text-align: center;background-color: #eaeaea;width: 80%;height: 80%;margin: auto;position: absolute;top: 0;left: 0;right: 0;bottom: 0;\">\n	<span style=\"display: block;text-align: center;color: #fff;font-size: 26px;height: 50px;line-height: 50px;background: #71c4ff;\">{siteName}</span>\n	<span style=\"display: block;margin-top: 20px;font-size: 20px\">\n		您收到此邮件是因为您在{siteName}的会员即将过期<br><br>\n		为保证服务正常使用,请尽快续费<br><br>\n		官网地址: <a href=\"{siteUrl}\">{siteUrl}</a>\n	</span>\n</div>');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (501, 'oauthConfig', '{\"enable\":false,\"google\":{\"redirectUri\":\"\",\"secret\":\"\",\"enable\":false,\"id\":\"\"}}');
 
 INSERT INTO `permission`(`id`, `role`, `permission`) VALUES (1, 'user', 'user');
 INSERT INTO `permission`(`id`, `role`, `permission`) VALUES (2, 'admin', 'admin');

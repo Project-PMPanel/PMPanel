@@ -30,6 +30,8 @@ public interface AdminService {
 
     Result getOtherConfig();
 
+    Result getOauthConfig();
+
     Result getClientConfig();
 
     Result updateValueByName(Config config) throws AlipayApiException;

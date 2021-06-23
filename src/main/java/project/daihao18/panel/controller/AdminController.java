@@ -86,6 +86,15 @@ public class AdminController {
     }
 
     /**
+     * 获取三方登录配置
+     * @return
+     */
+    @GetMapping("/getOauthConfig")
+    public Result getOauthConfig() {
+        return adminService.getOauthConfig();
+    }
+
+    /**
      * 获取客户端配置
      * @return
      */

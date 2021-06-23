@@ -10,6 +10,7 @@ import project.daihao18.panel.entity.*;
 import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @InterfaceName: UserService
@@ -126,4 +127,14 @@ public interface UserService extends IService<User> {
     Result unBindTG(Integer id);
 
     List<User> getTGUsers();
+
+    User getUserByEmail(String email);
+
+    Result getBindConfig();
+
+    Result getBindInfo(Integer uid);
+
+    Result bindAccount(Map<String, Object> map);
+
+    Result unBindAccount(Integer uid, String type);
 }

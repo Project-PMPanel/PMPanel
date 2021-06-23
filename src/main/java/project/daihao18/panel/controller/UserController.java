@@ -398,4 +398,43 @@ public class UserController {
     public Result unBindTG(HttpServletRequest request) {
         return userService.unBindTG(JwtTokenUtil.getId(request));
     }
+
+    /**
+     * 获取绑定配置
+     * @return
+     */
+    @GetMapping("/bindConfig")
+    public Result getBindConfig() {
+        return userService.getBindConfig();
+    }
+
+    /**
+     * 获取绑定信息
+     * @return
+     */
+    @GetMapping("/bindInfo")
+    public Result getBindInfo(HttpServletRequest request) {
+        return userService.getBindInfo(JwtTokenUtil.getId(request));
+    }
+
+    /**
+     * 绑定三方登录
+     * @param request
+     * @return
+     */
+    @PostMapping("/bindAccount")
+    public Result bindAccount(HttpServletRequest request, @RequestBody Map<String, Object> map) {
+        map.put("userId", JwtTokenUtil.getId(request));
+        return userService.bindAccount(map);
+    }
+
+    /**
+     * 绑定三方登录
+     * @param request
+     * @return
+     */
+    @PutMapping("/unBindAccount/{type}")
+    public Result unBindAccount(HttpServletRequest request, @PathVariable String type) {
+        return userService.unBindAccount(JwtTokenUtil.getId(request), type);
+    }
 }

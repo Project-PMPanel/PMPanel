@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -116,6 +117,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Value("${setting.botUsername}")
     private String botUsername;
 
+    @Autowired
+    private OauthService oauthService;
+
     @Override
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
         User user = this.getUserById(Integer.parseInt(id), false);
@@ -218,6 +222,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String siteName = configService.getValueByName("siteName");
         boolean regEnable = Boolean.parseBoolean(configService.getValueByName("regEnable"));
         Boolean panelMailRegisterEnable = Boolean.parseBoolean(configService.getValueByName("mailRegEnable"));
+        Map oauthConfig = JSONUtil.toBean(configService.getValueByName("oauthConfig"), Map.class);
+        JSONObject google = (JSONObject) oauthConfig.get("google");
+        Map<String, Boolean> loginWith = new HashMap<>();
+        loginWith.put("enable", Boolean.parseBoolean(oauthConfig.get("enable").toString()));
+        loginWith.put("google", Boolean.parseBoolean(JSONUtil.toBean(google, Map.class).get("enable").toString()));
         if (regEnable) {
             boolean inviteOnly = Boolean.parseBoolean(configService.getValueByName("inviteOnly"));
             // 如果启用了邮件注册,查询邮件后缀
@@ -231,17 +240,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                             .data("panelSiteRegisterInviteOnly", inviteOnly)
                             .data("emailList", emailList)
                             .data("panelSiteTitle", siteName)
-                            .data("panelMailRegisterEnable", panelMailRegisterEnable) :
+                            .data("panelMailRegisterEnable", panelMailRegisterEnable)
+                            .data("loginWith",loginWith):
                     Result.ok()
                             .data("panelSiteRegisterEnable", regEnable)
                             .data("panelSiteRegisterInviteOnly", inviteOnly)
                             .data("panelSiteTitle", siteName)
-                            .data("panelMailRegisterEnable", panelMailRegisterEnable);
+                            .data("panelMailRegisterEnable", panelMailRegisterEnable).data("loginWith",loginWith);
         } else {
             return Result.ok()
                     .data("panelSiteRegisterEnable", regEnable)
                     .data("panelSiteTitle", siteName)
-                    .data("panelMailRegisterEnable", panelMailRegisterEnable);
+                    .data("panelMailRegisterEnable", panelMailRegisterEnable).data("loginWith",loginWith);
         }
     }
 
@@ -1524,5 +1534,58 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .select("tg_id")
                 .isNotNull("tg_id");
         return this.list(userQueryWrapper);
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper
+                .eq("email", email);
+        return this.getOne(userQueryWrapper);
+    }
+
+    @Override
+    public Result getBindConfig() {
+        Map oauthConfig = JSONUtil.toBean(configService.getValueByName("oauthConfig"), Map.class);
+        JSONObject google = (JSONObject) oauthConfig.get("google");
+        Map<String, Boolean> bindConfig = new HashMap<>();
+        bindConfig.put("enable", Boolean.parseBoolean(oauthConfig.get("enable").toString()));
+        bindConfig.put("google", Boolean.parseBoolean(JSONUtil.toBean(google, Map.class).get("enable").toString()));
+        return Result.ok().data("bindConfig", bindConfig);
+    }
+
+    @Override
+    public Result getBindInfo(Integer uid) {
+        List<Oauth> oauths = oauthService.getAllBindsByUId(uid);
+        return Result.ok().data("oauths", oauths);
+    }
+
+    @Override
+    @Transactional
+    public Result bindAccount(Map<String, Object> map) {
+        // 用户绑定三方登录
+        Oauth oauth = new Oauth();
+        oauth.setUserId((Integer) map.get("userId"));
+        oauth.setOauthType((String) map.get("type"));
+        oauth.setEmail((String) map.get("email"));
+        oauth.setUuid((String) map.get("uuid"));
+        oauth.setTime(new Date());
+        oauth.setValid(true);
+        if (oauthService.save(oauth)) {
+            return Result.ok().message("绑定成功").messageEnglish("Bind Successfully");
+        } else {
+            return Result.error();
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result unBindAccount(Integer uid, String type) {
+        // 解绑第三方登录
+        if (oauthService.unBindAccount(uid, type)) {
+            return Result.ok().message("解绑成功").messageEnglish("Unbinding Successfully");
+        } else {
+            return Result.error().message("解绑失败").messageEnglish("Failed");
+        }
     }
 }
