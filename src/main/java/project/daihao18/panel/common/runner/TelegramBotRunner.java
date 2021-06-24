@@ -63,6 +63,8 @@ public class TelegramBotRunner implements ApplicationRunner {
     @Autowired
     private RedisService redisService;
 
+    private static String inviteLink;
+
     @Override
     public void run(ApplicationArguments args) {
         new Thread(new Runnable() {
@@ -132,6 +134,9 @@ public class TelegramBotRunner implements ApplicationRunner {
                                             bot.execute(new KickChatMember(message.chat().id(), user.id()));
                                             // 从黑名单解封
                                             // bot.execute(new UnbanChatMember(id, user.id()));
+                                        } else {
+                                            // revokeInviteLink
+                                            bot.execute(new RevokeChatInviteLink(message.chat().id(), inviteLink));
                                         }
                                     }
                                 }
@@ -157,8 +162,8 @@ public class TelegramBotRunner implements ApplicationRunner {
                     // 发送群组链接
                     if (enableVerifyTG) {
                         // get new invite link
-                        String link = bot.execute(new ExportChatInviteLink(chatid)).result();
-                        bot.execute(new SendMessage(message.from().id(), "欢迎加入tg群组: " + link));
+                        inviteLink = bot.execute(new ExportChatInviteLink(chatid)).result();
+                        bot.execute(new SendMessage(message.from().id(), "欢迎加入tg群组: " + inviteLink));
                     }
                 }
             } else {
