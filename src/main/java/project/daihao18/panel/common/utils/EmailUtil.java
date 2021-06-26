@@ -186,7 +186,7 @@ public class EmailUtil {
         messageHelper.setSubject(subject);
         messageHelper.setText(text, isHtml);
         messageHelper.setTo(sendTo);
-        messageHelper.setFrom(mailConfig.get("username").toString());
+        messageHelper.setFrom(mailConfig.get("from").toString());
 
         jms.send(mimeMessage);
 
