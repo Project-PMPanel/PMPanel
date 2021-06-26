@@ -3,6 +3,15 @@ package project.daihao18.panel.common.utils;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.dm.model.v20151123.SingleSendMailRequest;
+import com.aliyuncs.dm.model.v20151123.SingleSendMailResponse;
+import com.aliyuncs.exceptions.ClientException;
+import com.aliyuncs.exceptions.ServerException;
+import com.aliyuncs.http.MethodType;
+import com.aliyuncs.profile.DefaultProfile;
+import com.aliyuncs.profile.IClientProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -104,8 +113,9 @@ public class EmailUtil {
                 case "smtp":
                     return sendEmailBySmtp(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                 case "postalAPI":
-
                     return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                case "aliyunAPI":
+                    return sendEmailByAliyunAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
         return null;
@@ -127,6 +137,8 @@ public class EmailUtil {
                     return sendEmailBySmtp(subject, text, isHtml, sendTo, 1);
                 case "postalAPI":
                     return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 1);
+                case "aliyunAPI":
+                    return sendEmailByAliyunAPI(subject, text, isHtml, sendTo, 1);
             }
             return true;
         } catch (Exception e) {
@@ -260,6 +272,107 @@ public class EmailUtil {
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(map, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(mailConfig.get("host").toString(), request, Map.class);
             // log.info("{}", response);
+        }
+        return true;
+    }
+
+    private static IAcsClient client;
+
+    private static IAcsClient getClient(String accessKey, String accessSecret) {
+        if (ObjectUtil.isNotEmpty(client)) {
+            return client;
+        }
+        // 如果是除杭州region外的其它region（如新加坡、澳洲Region），需要将下面的”cn-hangzhou”替换为”ap-southeast-1”、或”ap-southeast-2”。
+        IClientProfile profile = DefaultProfile.getProfile("ap-southeast-1", accessKey, accessSecret);
+        // 如果是除杭州region外的其它region（如新加坡region）， 需要做如下处理
+        try {
+            DefaultProfile.addEndpoint("dm.ap-southeast-1.aliyuncs.com", "ap-southeast-1", "Dm", "dm.ap-southeast-1.aliyuncs.com");
+        } catch (ClientException e) {
+            e.printStackTrace();
+        }
+        client = new DefaultAcsClient(profile);
+        return client;
+    }
+
+    /**
+     * 阿里云API发信
+     * @param subject
+     * @param text
+     * @param isHtml
+     * @param sendTo
+     * @param type
+     * @return
+     */
+    private static boolean sendEmailByAliyunAPI(String subject, String text, boolean isHtml, String sendTo, int type) {
+        // 自己从redis查
+        List<String> emails = new ArrayList<>();
+        if (ObjectUtil.isEmpty(sendTo)) {
+            // sendTo是null
+            emails = (List) redisService.lRange("panel::emails", 0, -1);
+            if (ObjectUtil.isEmpty(emails)) {
+                return false;
+            } else {
+                redisService.del("panel::emails");
+            }
+        } else {
+            emails.add(sendTo);
+        }
+        // 查询config的mail配置
+        Map<String, Object> mailConfig = new HashMap<>();
+        switch (type) {
+            case 0:
+                // 0是验证码
+                mailConfig = JSONUtil.toBean(configService.getValueByName("mailConfig"), Map.class);
+                break;
+            case 1:
+                // 1是公告
+                mailConfig = JSONUtil.toBean(configService.getValueByName("notifyMailConfig"), Map.class);
+        }
+        int count = 0;
+        if (emails.size() % 50 == 0) {
+            count = emails.size() / 50;
+        } else {
+            count = emails.size() / 50 + 1;
+        }
+        for (int i = 0; i < count; i++) {
+            // 取出emails中50个元素
+            List<String> sendTO = new ArrayList<>();
+            for (int j = 0; j < 50; j++) {
+                if (ObjectUtil.isNotEmpty(emails)) {
+                    sendTO.add(emails.remove(0));
+                }
+            }
+            // 请求发信
+            SingleSendMailRequest request = new SingleSendMailRequest();
+            try {
+                request.setVersion("2017-06-22");// 如果是除杭州region外的其它region（如新加坡region）,必须指定为2017-06-22
+                request.setAccountName(mailConfig.get("accountName").toString());
+                request.setAddressType(1);
+                request.setReplyToAddress(true);
+                request.setFromAlias(mailConfig.get("alias").toString());
+                request.setToAddress(String.join(",", sendTO));
+                //可以给多个收件人发送邮件，收件人之间用逗号分开，批量发信建议使用BatchSendMailRequest方式
+                //request.setToAddress("邮箱1,邮箱2");
+                request.setSubject(subject);
+                //如果采用byte[].toString的方式的话请确保最终转换成utf-8的格式再放入htmlbody和textbody，若编码不一致则会被当成垃圾邮件。
+                //注意：文本邮件的大小限制为3M，过大的文本会导致连接超时或413错误
+                request.setHtmlBody(text);
+                //SDK 采用的是http协议的发信方式, 默认是GET方法，有一定的长度限制。
+                //若textBody、htmlBody或content的大小不确定，建议采用POST方式提交，避免出现uri is not valid异常
+                request.setMethod(MethodType.POST);
+                //开启需要备案，0关闭，1开启
+                //request.setClickTrace("0");
+                //如果调用成功，正常返回httpResponse；如果调用失败则抛出异常，需要在异常中捕获错误异常码；错误异常码请参考对应的API文档;
+                SingleSendMailResponse httpResponse = getClient(mailConfig.get("accessKey").toString(), mailConfig.get("accessSecret").toString()).getAcsResponse(request);
+                log.info(JSONUtil.toJsonStr(httpResponse));
+            } catch (ServerException e) {
+                //捕获错误异常码
+                log.error("Mail to: {} occurs ServerException, ErrCode: {}, ErrMsg: {}", sendTO, e.getErrCode(), e.getErrMsg());
+                // TODO 每日限额完成,报警
+            } catch (ClientException e) {
+                //捕获错误异常码
+                log.error("Mail to: {} occurs ClientException, ErrCode: {}, ErrMsg: {}", sendTO, e.getErrCode(), e.getErrMsg());
+            }
         }
         return true;
     }
