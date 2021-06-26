@@ -103,6 +103,9 @@ public class EmailUtil {
             switch (configService.getValueByName("mailType")) {
                 case "smtp":
                     return sendEmailBySmtp(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                case "postalAPI":
+
+                    return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
         return null;
@@ -204,13 +207,18 @@ public class EmailUtil {
      * @return
      */
     public static boolean sendEmailByPostalAPI(String subject, String text, boolean isHtml, String sendTo, int type) {
-        // sendTo是null
         // 自己从redis查
-        List<String> emails = (List) redisService.lRange("panel::emails", 0, -1);
-        if (ObjectUtil.isEmpty(emails)) {
-            return false;
+        List<String> emails = new ArrayList<>();
+        if (ObjectUtil.isEmpty(sendTo)) {
+            // sendTo是null
+            emails = (List) redisService.lRange("panel::emails", 0, -1);
+            if (ObjectUtil.isEmpty(emails)) {
+                return false;
+            } else {
+                redisService.del("panel::emails");
+            }
         } else {
-            redisService.del("panel::emails");
+            emails.add(sendTo);
         }
         // 查询config的mail配置
         Map<String, Object> mailConfig = new HashMap<>();
