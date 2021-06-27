@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.service.AdminService;
+import project.daihao18.panel.service.ConfigService;
 
 /**
  * @ClassName: CheckJobTaskService
@@ -19,11 +20,16 @@ public class NotifyRenewJobTaskService {
     @Autowired
     private AdminService adminService;
 
+    @Autowired
+    private ConfigService configService;
+
     // 0 0 2 28 * ?  每月28号凌晨2点发信通知
     @Transactional
     public void notifyRenewJob() {
-        log.info("Notify Renew Mail start");
-        adminService.notifyRenew();
-        log.info("Notify Renew Mail end");
+        if (Boolean.parseBoolean(configService.getValueByName("enableNotifyRenew"))) {
+            log.info("Notify Renew Mail start");
+            adminService.notifyRenew();
+            log.info("Notify Renew Mail end");
+        }
     }
 }
