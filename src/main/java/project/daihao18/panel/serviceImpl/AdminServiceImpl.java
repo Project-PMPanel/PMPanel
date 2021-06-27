@@ -178,7 +178,7 @@ public class AdminServiceImpl implements AdminService {
                     }
                 }).start();
             }
-        } else if ("postalAPI".equals(mailType)) {
+        } else if ("postalAPI".equals(mailType) || "aliyunAPI".equals(mailType)) {
             EmailUtil.sendEmail(title, content, true, null);
         }
         redisService.del("panel::emailTitle");
