@@ -198,7 +198,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getSiteConfig() {
-        String[] keys = {"siteName", "siteUrl", "subUrl", "regEnable", "inviteOnly", "mailRegEnable", "mailLimit", "mailType", "mailConfig", "notifyMailType", "notifyMailConfig"};
+        String[] keys = {"siteName", "siteUrl", "subUrl", "regEnable", "inviteOnly", "mailRegEnable", "mailLimit", "mailType", "mailConfig", "notifyMailType", "notifyMailConfig", "enableNotifyRenew"};
         Map<String, Object> siteConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
