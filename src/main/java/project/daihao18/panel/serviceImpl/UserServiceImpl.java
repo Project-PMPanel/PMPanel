@@ -1489,6 +1489,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             monthList.add(map);
             monthList.add(map2);
         }
+        // 剩余天数数据填充0
+        for (int i = LocalDateTimeUtil.now().getDayOfMonth(); i < LocalDate.now().lengthOfMonth(); i++) {
+            Map<String, Object> map = new HashMap<>();
+            Map<String, Object> map2 = new HashMap<>();
+            map.put("day", i + "号");
+            map.put("traffic", "上传");
+            map.put("value", 0);
+            map2.put("day",i + "号");
+            map2.put("traffic", "下载");
+            map2.put("value",0);
+            monthList.add(map);
+            monthList.add(map2);
+        }
         return Result.ok().data("trafficDetails", monthList);
     }
 
