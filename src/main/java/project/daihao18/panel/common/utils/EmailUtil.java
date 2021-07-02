@@ -13,6 +13,8 @@ import com.aliyuncs.http.MethodType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
 import lombok.extern.slf4j.Slf4j;
+import net.sargue.mailgun.Configuration;
+import net.sargue.mailgun.Mail;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -116,6 +118,8 @@ public class EmailUtil {
                     return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                 case "aliyunAPI":
                     return sendEmailByAliyunAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                case "mailgunAPI":
+                    return sendEmailByMailgunAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
         return null;
@@ -139,6 +143,8 @@ public class EmailUtil {
                     return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 1);
                 case "aliyunAPI":
                     return sendEmailByAliyunAPI(subject, text, isHtml, sendTo, 1);
+                case "mailgunAPI":
+                    return sendEmailByMailgunAPI(subject, text, isHtml, sendTo, 1);
             }
             return true;
         } catch (Exception e) {
@@ -373,6 +379,64 @@ public class EmailUtil {
                 //捕获错误异常码
                 log.error("Mail to: {} occurs ClientException, ErrCode: {}, ErrMsg: {}", sendTO, e.getErrCode(), e.getErrMsg());
             }
+        }
+        return true;
+    }
+
+    private static Configuration configuration = null;
+
+    private static Configuration getConfiguration(Map<String, Object> mailConfig) {
+        if (ObjectUtil.isEmpty(configuration)) {
+            configuration = new Configuration()
+                    .domain(mailConfig.get("domain").toString())
+                    .apiKey(mailConfig.get("key").toString())
+                    .from(configService.getValueByName("siteName"), mailConfig.get("sender").toString());
+        }
+        return configuration;
+    }
+
+    /**
+     * mailgun发信api
+     * @param subject
+     * @param text
+     * @param isHtml
+     * @param sendTo
+     * @param type
+     * @return
+     */
+    private static boolean sendEmailByMailgunAPI(String subject, String text, boolean isHtml, String sendTo, int type) {
+        // 自己从redis查
+        List<String> emails = new ArrayList<>();
+        if (ObjectUtil.isEmpty(sendTo)) {
+            // sendTo是null
+            emails = (List) redisService.lRange("panel::emails", 0, -1);
+            if (ObjectUtil.isEmpty(emails)) {
+                return false;
+            } else {
+                redisService.del("panel::emails");
+            }
+        } else {
+            emails.add(sendTo);
+        }
+        // 查询config的mail配置
+        Map<String, Object> mailConfig = new HashMap<>();
+        switch (type) {
+            case 0:
+                // 0是验证码
+                mailConfig = JSONUtil.toBean(configService.getValueByName("mailConfig"), Map.class);
+                break;
+            case 1:
+                // 1是公告
+                mailConfig = JSONUtil.toBean(configService.getValueByName("notifyMailConfig"), Map.class);
+        }
+        for (int i = 0; i < emails.size(); i++) {
+            // 请求发信
+            Mail.using(getConfiguration(mailConfig))
+                    .to(emails.remove(i))
+                    .subject(subject)
+                    .html(text)
+                    .build()
+                    .send();
         }
         return true;
     }
