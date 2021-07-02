@@ -17,4 +17,5 @@ ALTER TABLE `oauth`
 ADD CONSTRAINT `oauth_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (501, 'oauthConfig', '{\"enable\":false,\"google\":{\"redirectUri\":\"\",\"secret\":\"\",\"enable\":false,\"id\":\"\"}}');
+INSERT INTO `config` (`id`, `name`, `value`) VALUES (502, 'enableNotifyRenew', 'true');
 INSERT INTO `schedule` (`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (5, 'notifyRenewJobTaskService', 'notifyRenewJob', NULL, '0 0 2 28 * ?', '月底发送续费通知邮件', 1, '2020-11-11 11:11:11', NULL);
