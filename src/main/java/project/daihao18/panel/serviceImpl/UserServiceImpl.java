@@ -1202,6 +1202,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 List<User> admins = this.list(userQueryWrapper);
                 for (User admin : admins) {
                     EmailUtil.sendEmail("有新的提现需要处理~", "有新的提现单待处理~", false, admin.getEmail());
+                    if (ObjectUtil.isNotEmpty(admin.getTgId())) {
+                        bot.execute(new SendMessage(admin.getTgId(), "有新的提现单待处理~"));
+                    }
                 }
                 return Result.ok().message("已发起提现申请,请等待审核").messageEnglish("Please wait for review");
             } else {
