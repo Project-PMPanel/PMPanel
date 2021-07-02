@@ -543,7 +543,7 @@ CREATE TABLE `oauth`  (
 );
 
 ALTER TABLE `oauth`
-ADD CONSTRAINT `oauth_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+ADD CONSTRAINT `oauth_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -559,7 +559,6 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (9, 'mailConfig', '{\"passwor
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (10, 'notifyMailType', 'smtp');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (11, 'notifyMailConfig', '{\"password\":\"\",\"port\":\"\",\"host\":\"\",\"username\":\"\"}');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (101, 'enableEmailSuffix', '@qq.com;@163.com;@gmail.com');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (102, 'userPortRange', '10000:65535');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (103, 'inviteCount', '10');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (104, 'inviteRate', '0.1');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (105, 'enableWithdraw', 'false');

@@ -337,18 +337,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setD(0L);
         user.setP(0L);
         user.setTransferEnable(0L);
-        String[] userPortRange = configService.getValueByName("userPortRange").split(":");
-        Integer port = 0;
-        while (true) {
-            port = RandomUtil.randomInt(new Integer(userPortRange[0]), new Integer(userPortRange[1]));
-            QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-            userQueryWrapper.eq("port", port);
-            int count1 = this.count(userQueryWrapper);
-            if (count1 == 0) {
-                break;
-            }
-        }
-        user.setPort(port);
         user.setPasswd(RandomUtil.randomStringUpper(8));
         user.setMethod(MethodEnum.AES_256_CFB.getMethod());
         user.setProtocol(ProtocolEnum.ORIGIN.getProtocol());
