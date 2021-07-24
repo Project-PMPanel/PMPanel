@@ -136,7 +136,9 @@ public class TelegramBotRunner implements ApplicationRunner {
                                             // bot.execute(new UnbanChatMember(id, user.id()));
                                         } else {
                                             // revokeInviteLink
-                                            bot.execute(new RevokeChatInviteLink(message.chat().id(), inviteLink));
+                                            if (ObjectUtil.isNotEmpty(message.chat().id()) && message.chat().id() < 0 && ObjectUtil.isNotEmpty(inviteLink)) {
+                                                bot.execute(new RevokeChatInviteLink(message.chat().id(), inviteLink));
+                                            }
                                         }
                                     }
                                 }
