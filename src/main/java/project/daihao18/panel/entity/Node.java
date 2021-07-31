@@ -3,38 +3,45 @@ package project.daihao18.panel.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.ToString;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
- * @ClassName: Relay
+ * @ClassName: Node
  * @Description:
  * @Author: code18 
- * @Date: 2020-10-07 21:07
+ * @Date: 2020-10-07 21:06
  */
 @Data
 @ToString
-@TableName(value = "relay")
-public class Relay implements Serializable {
+public class Node implements Serializable {
 
     @TableId(type = IdType.AUTO)
     private Integer id;
 
-    private Integer userId;
+    private String name;
 
-    private Integer sourceNodeId;
+    private String outServer;
 
-    private Integer distNodeId;
+    private Integer outPort;
 
-    private String distIp;
+    private String subServer;
 
-    @TableField("`port`")
-    private Integer port;
+    private Integer subPort;
 
-    private Integer priority;
+    private Double trafficRate;
+
+    @TableField("`class`")
+    private Integer clazz;
+
+    private Integer speedlimit;
+
+    private Date heartbeat;
+
+    private boolean flag;
 
     private static final long serialVersionUID = 1L;
 }

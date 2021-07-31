@@ -59,7 +59,13 @@ public class AdminServiceImpl implements AdminService {
     private Alipay alipay;
 
     @Autowired
-    private SsNodeService ssNodeService;
+    private SsService ssService;
+
+    @Autowired
+    private V2rayService v2rayService;
+
+    @Autowired
+    private TrojanService trojanService;
 
     @Autowired
     private DetectListService detectListService;
@@ -98,9 +104,6 @@ public class AdminServiceImpl implements AdminService {
     private WithdrawService withdrawService;
 
     @Autowired
-    private AliveIpService aliveIpService;
-
-    @Autowired
     private ScheduleService scheduleService;
 
     @Autowired
@@ -114,9 +117,6 @@ public class AdminServiceImpl implements AdminService {
         Map<String, Object> map = new HashMap<>();
         // 获取待办工单数量
         map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().eq("status", 0).isNull("parent_id")));
-        // 获取在线节点信息
-        map.put("nodeCount", ssNodeService.count());
-        map.put("offlineCount", ssNodeService.count(new QueryWrapper<SsNode>().lt("node_heartbeat", new Date().getTime() / 1000 - 120)));
         // 获取用户数
         map.put("userCount", userService.count());
         map.put("monthRegisterCount", userService.getRegisterCountByDateToNow(DateUtil.beginOfMonth(new Date())));
@@ -221,19 +221,14 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getRegisterConfig() {
-        String[] keys = {"enableEmailSuffix", "userPortRange", "inviteCount", "inviteRate", "enableWithdraw", "minWithdraw", "withdrawRate"};
+        String[] keys = {"enableEmailSuffix", "inviteCount", "inviteRate", "enableWithdraw", "minWithdraw", "withdrawRate"};
         Map<String, Object> registerConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
             if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value)) {
                 registerConfig.put(keys[i], Boolean.parseBoolean(value));
             } else {
-                if ("userPortRange".equalsIgnoreCase(keys[i])) {
-                    registerConfig.put("userMinPort", value.split(":")[0]);
-                    registerConfig.put("userMaxPort", value.split(":")[1]);
-                } else {
-                    registerConfig.put(keys[i], value);
-                }
+                registerConfig.put(keys[i], value);
             }
         }
         return Result.ok().data("registerConfig", registerConfig);
@@ -319,12 +314,38 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Result getNode(HttpServletRequest request) {
+    public Result getNode(HttpServletRequest request, String type) {
+        Map<String, Object> map = new HashMap<>();
+
         Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
         Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
         String sortField = request.getParameter("sortField");
         String sortOrder = request.getParameter("sortOrder");
-        IPage<SsNode> page = ssNodeService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+        switch (type) {
+            case "ss":
+                IPage<Ss> ssIPage = ssService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                List<Ss> sss = ssIPage.getRecords();
+                map.put("data", sss);
+                map.put("pageNo", ssIPage.getCurrent());
+                map.put("totalCount", ssIPage.getTotal());
+                break;
+            case "v2ray":
+                IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                List<V2ray> v2rays = v2rayIPage.getRecords();
+                map.put("data", v2rays);
+                map.put("pageNo", v2rayIPage.getCurrent());
+                map.put("totalCount", v2rayIPage.getTotal());
+                break;
+            case "trojan":
+                IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                List<Trojan> trojans = trojanIPage.getRecords();
+                map.put("data", trojans);
+                map.put("pageNo", trojanIPage.getCurrent());
+                map.put("totalCount", trojanIPage.getTotal());
+                break;
+        }
+
+        /*IPage<SsNode> page = ssNodeService.getPageNode(pageNo, pageSize, sortField, sortOrder);
         List<SsNode> ssNodes = page.getRecords();
         // 查询节点对应的在线ip数以及ip
         for (SsNode node : ssNodes) {
@@ -332,94 +353,14 @@ public class AdminServiceImpl implements AdminService {
             aliveIpQueryWrapper.eq("nodeid", node.getId());
             List<AliveIp> aliveIps = aliveIpService.list(aliveIpQueryWrapper);
             node.setOnline(aliveIps.size());
-        }
-        Map<String, Object> map = new HashMap<>();
-        map.put("data", ssNodes);
-        map.put("pageNo", page.getCurrent());
-        map.put("totalCount", page.getTotal());
+        }*/
         return Result.ok().data("data", map);
-    }
-
-    @Override
-    public Result getNodeInfoByNodeId(HttpServletRequest request, Integer nodeId) throws IOException, IPFormatException {
-        SsNode node = ssNodeService.getById(nodeId);
-        int pageNo = Integer.parseInt(request.getParameter("pageNo"));
-        int pageSize = Integer.parseInt(request.getParameter("pageSize"));
-        IPage<AliveIp> page = new Page<>(pageNo, pageSize);
-        QueryWrapper<AliveIp> aliveIpQueryWrapper = new QueryWrapper<>();
-        aliveIpQueryWrapper.eq("nodeid", node.getId());
-        page = aliveIpService.page(page, aliveIpQueryWrapper);
-        List<AliveIp> aliveIps = page.getRecords();
-
-        List<Map<String, Object>> onlineIps = new ArrayList<>();
-        ClassPathResource classPathResource = new ClassPathResource("qqwry.ipdb");
-        City db = new City(classPathResource.getInputStream());
-        for (AliveIp aliveIp : aliveIps) {
-            Map<String, Object> userMapIp = new HashMap<>();
-            userMapIp.put("userId", aliveIp.getUserid());
-            userMapIp.put("ip", aliveIp.getIp());
-            userMapIp.put("time", DateUtil.date(aliveIp.getDatetime().longValue() * 1000).toJdkDate());
-            // 查ip归属
-            CityInfo info = db.findInfo(aliveIp.getIp(), "CN");
-            if (ObjectUtil.isNotEmpty(info.getCountryName())) {
-                userMapIp.put("country", info.getCountryName());
-            }
-            if (ObjectUtil.isNotEmpty(info.getRegionName())) {
-                userMapIp.put("region", info.getRegionName());
-            }
-            if (ObjectUtil.isNotEmpty(info.getCityName())) {
-                userMapIp.put("city", info.getCityName());
-            }
-            if (ObjectUtil.isNotEmpty(info.getIspDomain())) {
-                userMapIp.put("isp", info.getIspDomain());
-            }
-            onlineIps.add(userMapIp);
-        }
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("data", onlineIps);
-        map.put("pageNo", page.getCurrent());
-        map.put("totalCount", page.getTotal());
-
-        return Result.ok().data("data", map);
-    }
-
-    @Override
-    public Result getAllNodes() {
-        List<SsNode> ssNodeList = ssNodeService.getAllNodes();
-        List<SsNode> detectNodeList = new ArrayList<>();
-        // 过滤掉当前已配置审计的节点
-        List<Integer> nodeIds = nodeWithDetectService.getNodeId();
-        Iterator<SsNode> iterator = ssNodeList.iterator();
-        while (iterator.hasNext()) {
-            SsNode node = iterator.next();
-            for (int i : nodeIds) {
-                if (node.getId().equals(i)) {
-                    detectNodeList.add(node);
-                    iterator.remove();
-                }
-            }
-        }
-        return Result.ok().data("allNodes", ssNodeList).data("detectNodeList", detectNodeList);
     }
 
     @Override
     @Transactional
-    public Result addNode(SsNode ssNode) {
-        ssNode.setCustomMethod("1");
-        ssNode.setNodeSpeedlimit(0.00);
-        ssNode.setNodeConnector(0);
-        ssNode.setNodeBandwidth(0L);
-        ssNode.setNodeBandwidthLimit(0L);
-        ssNode.setBandwidthlimitResetday(0);
-        ssNode.setCustomRss(1);
-        if (ssNode.getSort() == 0) {
-            ssNode.setPort(Integer.parseInt(ssNode.getServer().split(";")[1].split("#")[0].split("=")[1]));
-            ssNode.setMuOnly(1);
-        } else if (ssNode.getSort() == 11) {
-            ssNode.setMuOnly(-1);
-        }
-        if (ssNodeService.save(ssNode)) {
+    public Result addSsNode(Ss ss) {
+        if (ssService.save(ss)) {
             redisService.deleteByKeys("panel::node::*");
             return Result.ok().message("添加成功").messageEnglish("Add successfully");
         } else {
@@ -429,14 +370,8 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public Result editNode(SsNode ssNode) {
-        if (ssNode.getSort() == 0) {
-            ssNode.setPort(Integer.parseInt(ssNode.getServer().split(";")[1].split("#")[0].split("=")[1]));
-            ssNode.setMuOnly(1);
-        } else if (ssNode.getSort() == 11) {
-            ssNode.setMuOnly(-1);
-        }
-        if (ssNodeService.updateById(ssNode)) {
+    public Result editSsNode(Ss ss) {
+        if (ssService.updateById(ss)) {
             redisService.deleteByKeys("panel::node::*");
             return Result.ok().message("修改成功").messageEnglish("Update successfully");
         } else {
@@ -446,13 +381,75 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public Result deleteNodeById(Integer id) {
-        if (ssNodeService.removeById(id)) {
+    public Result addV2rayNode(V2ray v2ray) {
+        if (v2rayService.save(v2ray)) {
             redisService.deleteByKeys("panel::node::*");
-            return Result.ok().message("删除成功").messageEnglish("Delete successfully");
+            return Result.ok().message("添加成功").messageEnglish("Add successfully");
         } else {
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
+    }
+
+    @Override
+    @Transactional
+    public Result editV2rayNode(V2ray v2ray) {
+        if (v2rayService.updateById(v2ray)) {
+            redisService.deleteByKeys("panel::node::*");
+            return Result.ok().message("修改成功").messageEnglish("Update successfully");
+        } else {
+            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result addTrojanNode(Trojan trojan) {
+        if (trojanService.save(trojan)) {
+            redisService.deleteByKeys("panel::node::*");
+            return Result.ok().message("添加成功").messageEnglish("Add successfully");
+        } else {
+            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result editTrojanNode(Trojan trojan) {
+        if (trojanService.updateById(trojan)) {
+            redisService.deleteByKeys("panel::node::*");
+            return Result.ok().message("修改成功").messageEnglish("Update successfully");
+        } else {
+            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result deleteNodeByTypeAndId(String type, Integer id) {
+        switch (type) {
+            case "ss":
+                if (ssService.removeById(id)) {
+                    redisService.deleteByKeys("panel::node::*");
+                    return Result.ok().message("删除成功").messageEnglish("Delete successfully");
+                } else {
+                    return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                }
+            case "v2ray":
+                if (v2rayService.removeById(id)) {
+                    redisService.deleteByKeys("panel::node::*");
+                    return Result.ok().message("删除成功").messageEnglish("Delete successfully");
+                } else {
+                    return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                }
+            case "trojan":
+                if (trojanService.removeById(id)) {
+                    redisService.deleteByKeys("panel::node::*");
+                    return Result.ok().message("删除成功").messageEnglish("Delete successfully");
+                } else {
+                    return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                }
+        }
+        return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
     @Override
@@ -691,7 +688,7 @@ public class AdminServiceImpl implements AdminService {
         toUpdateUser.setId(user.getId());
         toUpdateUser.setPasswd(RandomUtil.randomStringUpper(8));
         // 重新生成uuid
-        toUpdateUser.setUuid(UuidUtil.uuid3(toUpdateUser.getId() + "|" + toUpdateUser.getPasswd()));
+        toUpdateUser.setPasswd(UuidUtil.uuid3(user.getId() + "|" + DateUtil.currentSeconds()));
         // 重新生成订阅
         toUpdateUser.setLink(RandomUtil.randomString(10));
         return userService.updateById(toUpdateUser) && redisService.del("panel::user::" + toUpdateUser.getId()) ? Result.ok().message("重置成功").messageEnglish("Reset Successfully") : Result.error().message("重置失败").messageEnglish("Reset failed");

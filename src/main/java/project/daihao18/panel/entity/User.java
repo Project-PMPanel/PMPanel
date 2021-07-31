@@ -97,11 +97,6 @@ public class User implements Serializable, UserDetails {
     private Date expireIn;
 
     /**
-     * v2ray流量上报需要的无用字段
-     */
-    private Integer expireTime;
-
-    /**
      * 上次使用时间
      */
     private Long t;
@@ -127,45 +122,9 @@ public class User implements Serializable, UserDetails {
     private Long transferEnable;
 
     /**
-     * 端口
-     */
-    @TableField("`port`")
-    private Integer port;
-
-    /**
      * 节点链接密码
      */
     private String passwd;
-
-    /**
-     * 加密方式
-     */
-    private String method;
-
-    /**
-     * 协议
-     */
-    private String protocol;
-
-    /**
-     * 协议参数
-     */
-    private String protocolParam;
-
-    /**
-     * 混淆
-     */
-    private String obfs;
-
-    /**
-     * 混淆参数
-     */
-    private String obfsParam;
-
-    /**
-     * v2ray的uuid
-     */
-    private String uuid;
 
     /**
      * 节点限速 mbps
@@ -201,14 +160,6 @@ public class User implements Serializable, UserDetails {
      * 是否是管理员
      */
     private Integer isAdmin;
-
-    private String forbiddenIp;
-
-    private String forbiddenPort;
-
-    private String disconnectIp;
-
-    private Integer isMultiUser;
 
     // 以下字段非数据库字段
 

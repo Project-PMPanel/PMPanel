@@ -117,52 +117,73 @@ public class AdminController {
     /////   Node
 
     /**
-     * 获取所有节点
-     * @return
-     */
-    @GetMapping("/nodes")
-    public Result getAllNodes() {
-        return adminService.getAllNodes();
-    }
-
-    /**
      * 获取节点列表
      * @param request
      * @return
      */
-    @GetMapping("/node")
-    public Result getNode(HttpServletRequest request) {
-        return adminService.getNode(request);
+    @GetMapping("/node/{type}")
+    public Result getNode(HttpServletRequest request, @PathVariable("type") String type) {
+        return adminService.getNode(request, type);
     }
 
     /**
-     * 根据nodeId获取详情
-     * @param nodeId
+     * 新增SS节点
+     * @param ss
      * @return
      */
-    @GetMapping("/node/{nodeId}")
-    public Result getNodeInfoByNodeId(HttpServletRequest request, @PathVariable Integer nodeId) throws IOException, IPFormatException {
-        return adminService.getNodeInfoByNodeId(request, nodeId);
+    @PostMapping("/node/ss")
+    public Result addSsNode(@RequestBody Ss ss) {
+        return adminService.addSsNode(ss);
     }
 
     /**
-     * 新增node
-     * @param ssNode
+     * 修改ss节点
+     * @param ss
      * @return
      */
-    @PostMapping("/node")
-    public Result addNode(@RequestBody SsNode ssNode) {
-        return adminService.addNode(ssNode);
+    @PutMapping("/node/ss")
+    public Result editSsNode(@RequestBody Ss ss) {
+        return adminService.editSsNode(ss);
     }
 
     /**
-     * 修改节点
-     * @param ssNode
+     * 新增V2ray节点
+     * @param v2ray
      * @return
      */
-    @PutMapping("/node")
-    public Result editNode(@RequestBody SsNode ssNode) {
-        return adminService.editNode(ssNode);
+    @PostMapping("/node/v2ray")
+    public Result addV2rayNode(@RequestBody V2ray v2ray) {
+        return adminService.addV2rayNode(v2ray);
+    }
+
+    /**
+     * 修改v2ray节点
+     * @param v2ray
+     * @return
+     */
+    @PutMapping("/node/v2ray")
+    public Result editV2rayNode(@RequestBody V2ray v2ray) {
+        return adminService.editV2rayNode(v2ray);
+    }
+
+    /**
+     * 新增trojan节点
+     * @param trojan
+     * @return
+     */
+    @PostMapping("/node/trojan")
+    public Result addTrojanNode(@RequestBody Trojan trojan) {
+        return adminService.addTrojanNode(trojan);
+    }
+
+    /**
+     * 修改trojan节点
+     * @param trojan
+     * @return
+     */
+    @PutMapping("/node/trojan")
+    public Result editTrojanNode(@RequestBody Trojan trojan) {
+        return adminService.editTrojanNode(trojan);
     }
 
     /**
@@ -170,9 +191,9 @@ public class AdminController {
      * @param id
      * @return
      */
-    @DeleteMapping("/node/{id}")
-    public Result deleteNodeById(@PathVariable Integer id) {
-        return adminService.deleteNodeById(id);
+    @DeleteMapping("/node/{type}/{id}")
+    public Result deleteNodeByTypeAndId(@PathVariable String type, @PathVariable Integer id) {
+        return adminService.deleteNodeByTypeAndId(type, id);
     }
 
     /**

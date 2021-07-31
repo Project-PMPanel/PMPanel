@@ -36,17 +36,21 @@ public interface AdminService {
 
     Result updateValueByName(Config config) throws AlipayApiException;
 
-    Result getAllNodes();
+    Result getNode(HttpServletRequest request, String type);
 
-    Result getNode(HttpServletRequest request);
+    Result addSsNode(Ss ss);
 
-    Result getNodeInfoByNodeId(HttpServletRequest request, Integer nodeId) throws IOException, IPFormatException;
+    Result editSsNode(Ss ss);
 
-    Result addNode(SsNode ssNode);
+    Result addV2rayNode(V2ray v2ray);
 
-    Result editNode(SsNode ssNode);
+    Result editV2rayNode(V2ray v2ray);
 
-    Result deleteNodeById(Integer id);
+    Result addTrojanNode(Trojan trojan);
+
+    Result editTrojanNode(Trojan trojan);
+
+    Result deleteNodeByTypeAndId(String type, Integer id);
 
     Result getAllDetects();
 

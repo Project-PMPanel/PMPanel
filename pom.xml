@@ -10,7 +10,7 @@
     </parent>
     <groupId>project.daihao18</groupId>
     <artifactId>pmpanel</artifactId>
-    <version>0.0.4</version>
+    <version>1.0.0</version>
     <name>panel_backend</name>
     <description>daihao18's pmpanel project</description>
 

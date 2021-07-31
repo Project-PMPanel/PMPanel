@@ -28,11 +28,15 @@ public class UserTrafficLog implements Serializable {
 
     private Integer d;
 
+    private String type;
+
     private Integer nodeId;
 
     private Double rate;
 
     private String traffic;
+
+    private String ip;
 
     private Integer logTime;
 

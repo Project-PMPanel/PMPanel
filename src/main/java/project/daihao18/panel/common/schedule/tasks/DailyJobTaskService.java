@@ -38,19 +38,7 @@ public class DailyJobTaskService {
     private UserService userService;
 
     @Autowired
-    private SsNodeInfoService ssNodeInfoService;
-
-    @Autowired
-    private SsNodeOnlineLogService ssNodeOnlineLogService;
-
-    @Autowired
     private UserTrafficLogService userTrafficLogService;
-
-    @Autowired
-    private DetectLogService detectLogService;
-
-    @Autowired
-    private SpeedtestService speedtestService;
 
     @Autowired
     private OrderService orderService;
@@ -166,16 +154,11 @@ public class DailyJobTaskService {
     @Transactional
     public void cleanDB() {
         log.info(DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + " 清理数据库");
-        // 清理数据库日志
-        ssNodeInfoService.dailyJobTask();
-        ssNodeOnlineLogService.dailyJobTask();
         // 如果设置流量日志保留天数,则执行dayJobTask,否则按自然月保存用户流量日志,执行monthlyJobTask
         int days = Integer.parseInt(configService.getValueByName("userTrafficLogLimitDays"));
         if (days > 0) {
             userTrafficLogService.dailyJobTask(days);
         }
-        detectLogService.dailyJobTask();
-        speedtestService.dailyJobTask();
         log.info("清理数据库执行结束");
     }
 }

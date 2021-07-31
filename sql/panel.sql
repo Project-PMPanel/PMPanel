@@ -18,23 +18,6 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
--- Table structure for alive_ip
--- ----------------------------
-DROP TABLE IF EXISTS `alive_ip`;
-CREATE TABLE `alive_ip` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nodeid` int DEFAULT '0',
-  `userid` int DEFAULT '0',
-  `ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT '',
-  `datetime` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `alive_ip_userid` (`userid`),
-  KEY `alive_ip_nodeid` (`nodeid`),
-  CONSTRAINT `alive_ip_nodeid` FOREIGN KEY (`nodeid`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `alive_ip_userid` FOREIGN KEY (`userid`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='在线ip';
-
--- ----------------------------
 -- Table structure for announcement
 -- ----------------------------
 DROP TABLE IF EXISTS `announcement`;
@@ -45,20 +28,6 @@ CREATE TABLE `announcement` (
   `time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公告';
-
--- ----------------------------
--- Table structure for blockip
--- ----------------------------
-DROP TABLE IF EXISTS `blockip`;
-CREATE TABLE `blockip` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nodeid` int DEFAULT '0',
-  `ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `datetime` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `block_ip_nodeid` (`nodeid`),
-  CONSTRAINT `block_ip_nodeid` FOREIGN KEY (`nodeid`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
 -- Table structure for config
@@ -84,39 +53,6 @@ CREATE TABLE `detect_list` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审计规则';
 
 -- ----------------------------
--- Table structure for detect_log
--- ----------------------------
-DROP TABLE IF EXISTS `detect_log`;
-CREATE TABLE `detect_log` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT '0',
-  `list_id` int DEFAULT '0',
-  `datetime` int DEFAULT '0',
-  `node_id` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `detect_log_userid` (`user_id`),
-  KEY `detect_log_listid` (`list_id`),
-  KEY `detect_log_nodeid` (`node_id`),
-  CONSTRAINT `detect_log_listid` FOREIGN KEY (`list_id`) REFERENCES `detect_list` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `detect_log_nodeid` FOREIGN KEY (`node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `detect_log_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='审计记录';
-
--- ----------------------------
--- Table structure for disconnect_ip
--- ----------------------------
-DROP TABLE IF EXISTS `disconnect_ip`;
-CREATE TABLE `disconnect_ip` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `userid` int DEFAULT '0',
-  `ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `datetime` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `disconnect_ip_userid` (`userid`),
-  CONSTRAINT `disconnect_ip_userid` FOREIGN KEY (`userid`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------
 -- Table structure for funds
 -- ----------------------------
 DROP TABLE IF EXISTS `funds`;
@@ -139,14 +75,29 @@ CREATE TABLE `funds` (
 DROP TABLE IF EXISTS `node_with_detect`;
 CREATE TABLE `node_with_detect` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `type` varchar(10) DEFAULT NULL,
   `node_id` int DEFAULT NULL,
   `detect_list_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `node_with_detect_detect_list_id` (`detect_list_id`),
   KEY `node_with_detect_node_id` (`node_id`),
-  CONSTRAINT `node_with_detect_detect_list_id` FOREIGN KEY (`detect_list_id`) REFERENCES `detect_list` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `node_with_detect_node_id` FOREIGN KEY (`node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `node_with_detect_detect_list_id` FOREIGN KEY (`detect_list_id`) REFERENCES `detect_list` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for oauth
+-- ----------------------------
+DROP TABLE IF EXISTS `oauth`;
+CREATE TABLE `oauth`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'oauth主键',
+  `user_id` int(11) NULL COMMENT '用户id',
+  `oauth_type` varchar(10) NULL COMMENT '哪个第三方系统的oauth',
+  `email` varchar(50) NULL COMMENT '邮箱',
+  `uuid` varchar(50) NULL COMMENT '第三方系统唯一识别号',
+  `time` datetime(0) NULL COMMENT '绑定时间',
+  `valid` int(1) NULL COMMENT '绑定是否有效',
+  PRIMARY KEY (`id`)
+);
 
 -- ----------------------------
 -- Table structure for operate_ip
@@ -264,27 +215,6 @@ CREATE TABLE `plan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='套餐';
 
 -- ----------------------------
--- Table structure for relay
--- ----------------------------
-DROP TABLE IF EXISTS `relay`;
-CREATE TABLE `relay` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT '0',
-  `source_node_id` int DEFAULT '0',
-  `dist_node_id` int DEFAULT '0',
-  `dist_ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `port` int DEFAULT '0',
-  `priority` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `relay_userid` (`user_id`),
-  KEY `relay_source_nodeid` (`source_node_id`),
-  KEY `relay_dist_nodeid` (`dist_node_id`),
-  CONSTRAINT `relay_dist_nodeid` FOREIGN KEY (`dist_node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `relay_source_nodeid` FOREIGN KEY (`source_node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `relay_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='中转规则';
-
--- ----------------------------
 -- Table structure for schedule
 -- ----------------------------
 DROP TABLE IF EXISTS `schedule`;
@@ -302,89 +232,60 @@ CREATE TABLE `schedule` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
--- Table structure for speedtest
+-- Table structure for shadowsocks
 -- ----------------------------
-DROP TABLE IF EXISTS `speedtest`;
-CREATE TABLE `speedtest` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `nodeid` int DEFAULT '0',
-  `datetime` int DEFAULT '0',
-  `telecomping` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `telecomeupload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `telecomedownload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `unicomping` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `unicomupload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `unicomdownload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `cmccping` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `cmccupload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `cmccdownload` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `speedtest_nodeid` (`nodeid`),
-  CONSTRAINT `speedtest_nodeid` FOREIGN KEY (`nodeid`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='测速';
-
--- ----------------------------
--- Table structure for ss_node
--- ----------------------------
-DROP TABLE IF EXISTS `ss_node`;
-CREATE TABLE `ss_node` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `type` int DEFAULT '1',
-  `server` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `port` int DEFAULT '0' COMMENT '单端口',
-  `passwd` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '后端连接密码',
-  `method` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'chacha20' COMMENT '加密方式',
-  `protocol` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'origin' COMMENT '协议',
-  `obfs` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'http_post_compatible' COMMENT '混淆',
-  `is_multi_user` int DEFAULT '0' COMMENT '是否单端口多用户',
-  `info` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `sort` int DEFAULT '0',
-  `custom_method` int DEFAULT '1',
-  `traffic_rate` float DEFAULT '1',
-  `node_group` int DEFAULT '0',
-  `node_class` int DEFAULT '0',
-  `node_speedlimit` float DEFAULT '0',
-  `node_connector` int DEFAULT '0',
-  `node_bandwidth` bigint DEFAULT '0',
-  `node_bandwidth_limit` bigint DEFAULT '0',
-  `bandwidthlimit_resetday` int DEFAULT '0',
-  `node_heartbeat` int DEFAULT '0',
-  `node_ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `custom_rss` int DEFAULT '1',
-  `mu_only` int DEFAULT '-1',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='节点表';
-
--- ----------------------------
--- Table structure for ss_node_info
--- ----------------------------
-DROP TABLE IF EXISTS `ss_node_info`;
-CREATE TABLE `ss_node_info` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `node_id` int DEFAULT '0',
-  `uptime` float DEFAULT '0',
-  `load` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `log_time` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `ss_node_info_nodeid` (`node_id`),
-  CONSTRAINT `ss_node_info_nodeid` FOREIGN KEY (`node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+DROP TABLE IF EXISTS `shadowsocks`;
+CREATE TABLE `shadowsocks`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '节点id',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '节点名称',
+  `out_server` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '落地域名',
+  `out_port` int(11) NULL DEFAULT NULL COMMENT '落地端口',
+  `sub_server` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订阅域名',
+  `sub_port` int(11) NULL DEFAULT NULL COMMENT '订阅端口',
+  `method` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '加密方式',
+  `traffic_rate` float NULL DEFAULT NULL COMMENT '流量倍率',
+  `class` int(11) NULL DEFAULT NULL COMMENT '节点等级',
+  `speedlimit` int(11) NULL DEFAULT NULL COMMENT '节点限速',
+  `heartbeat` datetime NULL DEFAULT NULL COMMENT '心跳',
+  `flag` int(11) NULL DEFAULT NULL COMMENT '启用停止标志位',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
--- Table structure for ss_node_online_log
+-- Table structure for ticket
 -- ----------------------------
-DROP TABLE IF EXISTS `ss_node_online_log`;
-CREATE TABLE `ss_node_online_log` (
+DROP TABLE IF EXISTS `ticket`;
+CREATE TABLE `ticket`  (
   `id` int NOT NULL AUTO_INCREMENT,
-  `node_id` int DEFAULT '0',
-  `online_user` int DEFAULT '0',
-  `log_time` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `ss_node_online_log_nodeid` (`node_id`),
-  CONSTRAINT `ss_node_online_log_nodeid` FOREIGN KEY (`node_id`) REFERENCES `ss_node` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  `user_id` int NULL,
+  `title` varchar(50) NULL DEFAULT '',
+  `content` text NULL,
+  `time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `parent_id` int NULL,
+  `status` int NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+);
+
+-- ----------------------------
+-- Table structure for trojan
+-- ----------------------------
+DROP TABLE IF EXISTS `trojan`;
+CREATE TABLE `trojan`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '节点id',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '节点名称',
+  `out_server` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '落地域名',
+  `out_port` int(11) NULL DEFAULT NULL COMMENT '落地端口',
+  `sub_server` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '订阅域名',
+  `sub_port` int(11) NULL DEFAULT NULL COMMENT '订阅端口',
+  `grpc` int(1) NULL DEFAULT NULL COMMENT '是否开启grpc',
+  `traffic_rate` float NULL DEFAULT NULL COMMENT '流量倍率',
+  `class` int(11) NULL DEFAULT NULL COMMENT '节点等级',
+  `speedlimit` int(11) NULL DEFAULT NULL COMMENT '节点限速',
+  `heartbeat` datetime NULL DEFAULT NULL COMMENT '心跳',
+  `flag` int(11) NULL DEFAULT NULL COMMENT '启用停止标志位',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ----------------------------
 -- Table structure for tutorial
@@ -396,20 +297,6 @@ CREATE TABLE `tutorial` (
   `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
   `markdown_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------
--- Table structure for unblockip
--- ----------------------------
-DROP TABLE IF EXISTS `unblockip`;
-CREATE TABLE `unblockip` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
-  `datetime` int DEFAULT '0',
-  `userid` int DEFAULT '0',
-  PRIMARY KEY (`id`) USING BTREE,
-  KEY `unblockip` (`userid`),
-  CONSTRAINT `unblockip` FOREIGN KEY (`userid`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------
@@ -430,28 +317,16 @@ CREATE TABLE `user` (
   `class` int DEFAULT '0' COMMENT '用户等级',
   `enable` int DEFAULT '1' COMMENT '是否启用',
   `expire_in` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '过期时间',
-  `expire_time` int DEFAULT '0' COMMENT 'v2ray必须有的',
   `t` bigint DEFAULT '0' COMMENT '上次使用时间戳',
   `u` bigint DEFAULT '0' COMMENT '上传流量字节',
   `d` bigint DEFAULT '0' COMMENT '下载流量字节',
   `p` bigint DEFAULT '0' COMMENT '过去已用字节',
   `transfer_enable` bigint DEFAULT '0' COMMENT '可用流量字节',
-  `port` int DEFAULT '0' COMMENT '端口',
-  `passwd` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '后端连接密码',
-  `method` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'chacha20' COMMENT '加密方式',
-  `protocol` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'origin' COMMENT '协议',
-  `protocol_param` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '协议参数',
-  `obfs` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'http_post_compatible' COMMENT '混淆',
-  `obfs_param` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '混淆参数',
-  `uuid` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'v2ray的uuid',
+  `passwd` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '后端连接密码uuid',
   `node_speedlimit` int DEFAULT '0' COMMENT '节点限速',
   `node_connector` int DEFAULT '0' COMMENT '节点连接数',
   `node_group` int DEFAULT '0' COMMENT '节点组',
   `is_admin` int DEFAULT '0' COMMENT '是否管理员',
-  `forbidden_ip` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '127.0.0.0/8,::1/128' COMMENT '禁用IP',
-  `forbidden_port` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '禁用端口',
-  `disconnect_ip` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '临时封禁IP',
-  `is_multi_user` int DEFAULT '0' COMMENT '是否单端口多用户',
   `reg_date` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
   `tg_id` int(11) NULL COMMENT 'tg的id',
   `last_used_date` datetime NULL COMMENT '上次使用时间',
@@ -459,6 +334,20 @@ CREATE TABLE `user` (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `EMAIL_UNIQUE` (`email`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+
+-- ----------------------------
+-- Table structure for user_monthly_traffic
+-- ----------------------------
+DROP TABLE IF EXISTS `user_monthly_traffic`;
+CREATE TABLE `user_monthly_traffic` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NULL,
+  `date` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `u` bigint NULL DEFAULT 0,
+  `d` bigint NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+CONSTRAINT `user_monthly_traffic_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
 
 -- ----------------------------
 -- Table structure for user_traffic_log
@@ -469,14 +358,41 @@ CREATE TABLE `user_traffic_log` (
   `user_id` int DEFAULT '0',
   `u` int DEFAULT '0',
   `d` int DEFAULT '0',
+  `type` varchar(50) DEFAULT '',
   `node_id` int DEFAULT '0',
   `rate` float DEFAULT '0',
   `traffic` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '',
+  `ip` varchar(50) DEFAULT '',
   `log_time` int DEFAULT '0',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `user_traffic_log_userid` (`user_id`),
   CONSTRAINT `user_traffic_log_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------
+-- Table structure for v2ray
+-- ----------------------------
+DROP TABLE IF EXISTS `v2ray`;
+CREATE TABLE `v2ray`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '节点id',
+  `name` varchar(50) NULL COMMENT '节点名称',
+  `out_server` varchar(50) NULL COMMENT '落地域名',
+  `out_port` int NULL COMMENT '落地端口',
+  `alter_id` int NULL COMMENT 'AlterId',
+  `network` varchar(50) NULL COMMENT '传输协议',
+  `security` varchar(50) NULL COMMENT '安全性',
+  `host` varchar(50) NULL COMMENT '伪装请求域名',
+  `path` varchar(50) NULL COMMENT '伪装请求地址',
+  `sub_server` varchar(50) NULL COMMENT '订阅域名',
+  `sub_port` int NULL COMMENT '订阅端口',
+  `sni` varchar(255) NULL COMMENT 'sni',
+  `traffic_rate` float NULL COMMENT '流量倍率',
+  `class` int NULL COMMENT '节点等级',
+  `speedlimit` int NULL COMMENT '节点限速',
+  `heartbeat` datetime NULL COMMENT '心跳',
+  `flag` int NULL COMMENT '启用停止标志位',
+  PRIMARY KEY (`id`)
+);
 
 -- ----------------------------
 -- Table structure for withdraw
@@ -495,57 +411,13 @@ CREATE TABLE `withdraw` (
   CONSTRAINT `withdraw_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------
--- Table structure for user_monthly_traffic
--- ----------------------------
-DROP TABLE IF EXISTS `user_monthly_traffic`;
-CREATE TABLE `user_monthly_traffic` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NULL,
-  `date` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-  `u` bigint NULL DEFAULT 0,
-  `d` bigint NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `user_monthly_traffic_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- ----------------------------
--- Table structure for ticket
--- ----------------------------
-DROP TABLE IF EXISTS `ticket`;
-CREATE TABLE `ticket`  (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NULL,
-  `title` varchar(50) NULL DEFAULT '',
-  `content` text NULL,
-  `time` datetime(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-  `parent_id` int NULL,
-  `status` int NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-);
+SET FOREIGN_KEY_CHECKS = 1;
 
 ALTER TABLE `ticket`
 ADD CONSTRAINT `ticket_parent_id` FOREIGN KEY (`parent_id`) REFERENCES `ticket` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
--- ----------------------------
--- Table structure for oauth
--- ----------------------------
-DROP TABLE IF EXISTS `oauth`;
-CREATE TABLE `oauth`  (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'oauth主键',
-  `user_id` int(11) NULL COMMENT '用户id',
-  `oauth_type` varchar(10) NULL COMMENT '哪个第三方系统的oauth',
-  `email` varchar(50) NULL COMMENT '邮箱',
-  `uuid` varchar(50) NULL COMMENT '第三方系统唯一识别号',
-  `time` datetime(0) NULL COMMENT '绑定时间',
-  `valid` int(1) NULL COMMENT '绑定是否有效',
-  PRIMARY KEY (`id`)
-);
-
 ALTER TABLE `oauth`
 ADD CONSTRAINT `oauth_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
-SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (1, 'siteName', 'PMPanel');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (2, 'siteUrl', 'http://127.0.0.1');
@@ -558,12 +430,12 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (8, 'mailType', 'smtp');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (9, 'mailConfig', '{\"password\":\"\",\"port\":\"\",\"host\":\"\",\"username\":\"\"}');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (10, 'notifyMailType', 'smtp');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (11, 'notifyMailConfig', '{\"password\":\"\",\"port\":\"\",\"host\":\"\",\"username\":\"\"}');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (101, 'enableEmailSuffix', '@qq.com;@163.com;@gmail.com');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (103, 'inviteCount', '10');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (104, 'inviteRate', '0.1');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (105, 'enableWithdraw', 'false');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (106, 'minWithdraw', '50');
-INSERT INTO `config`(`id`, `name`, `value`) VALUES (107, 'withdrawRate', '0.15');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (101, 'enableEmailSuffix', '@qq.com;@gmail.com');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (102, 'inviteCount', '10');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (103, 'inviteRate', '0.1');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (104, 'enableWithdraw', 'false');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (105, 'minWithdraw', '50');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (106, 'withdrawRate', '0.15');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (201, 'alipay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (202, 'wxpay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (203, 'alipayConfig', '{\"appId\":\"\",\"pId\":\"\",\"isCertMode\":false,\"appPrivateKey\":\"\",\"alipayPublicKey\":\"\",\"appCertPath\":\"\",\"alipayCertPath\":\"\",\"alipayRootCertPath\":\"\",\"serverUrl\":\"https://openapi.alipay.com/gateway.do\",\"domain\":\"http://127.0.0.1\",\"web\":false,\"wap\":false,\"f2f\":false}');

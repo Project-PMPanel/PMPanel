@@ -26,10 +26,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import project.daihao18.panel.common.enums.MethodEnum;
-import project.daihao18.panel.common.enums.ObfsEnum;
 import project.daihao18.panel.common.enums.PayStatusEnum;
-import project.daihao18.panel.common.enums.ProtocolEnum;
 import project.daihao18.panel.common.exceptions.CustomException;
 import project.daihao18.panel.common.payment.alipay.Alipay;
 import project.daihao18.panel.common.response.Result;
@@ -77,9 +74,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private AnnouncementService announcementService;
-
-    @Autowired
-    private AliveIpService aliveIpService;
 
     @Autowired
     private PlanService planService;
@@ -186,9 +180,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setSubsLink(subUrl);
             // 累计资金,余额+佣金
             user.setFunds(user.getMoney());
-            // 查当前在线ip
-            Integer aliveCount = aliveIpService.countAliveIpByUserId(user.getId());
-            user.setAliveCount(aliveCount);
             // 查询邀请了多少人
             Integer commissionCount = this.count(new QueryWrapper<User>().eq("parent_id", user.getId()));
             user.setCommissionCount(commissionCount);
@@ -337,13 +328,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setD(0L);
         user.setP(0L);
         user.setTransferEnable(0L);
-        user.setPasswd(RandomUtil.randomStringUpper(8));
-        user.setMethod(MethodEnum.AES_256_CFB.getMethod());
-        user.setProtocol(ProtocolEnum.ORIGIN.getProtocol());
-        user.setProtocolParam("");
-        user.setObfs(ObfsEnum.PLAIN.getObfs());
-        user.setProtocolParam("");
-        user.setUuid(UuidUtil.uuid3(user.getId() + "|" + user.getPasswd()));
+        user.setPasswd(UuidUtil.uuid3(user.getId() + "|" + DateUtil.currentSeconds()));
         user.setNodeSpeedlimit(0);
         user.setNodeConnector(0);
         if (count == 0) {
@@ -351,10 +336,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         } else {
             user.setIsAdmin(0);
         }
-        user.setForbiddenIp("127.0.0.0/8,::1/128");
-        user.setForbiddenPort("");
-        user.setDisconnectIp("");
-        user.setIsMultiUser(0);
         user.setRegDate(new Date());
         if (this.save(user)) {
             // 删除后台分页查询用户的缓存
@@ -1183,11 +1164,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 // 删除该用户缓存
                 redisService.del("panel::user::" + user.getId());
                 // 给管理员发信
-                QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-                userQueryWrapper
-                        .select("email")
-                        .eq("is_admin", 1);
-                List<User> admins = this.list(userQueryWrapper);
+                List<User> admins = this.getAdmins();
                 for (User admin : admins) {
                     EmailUtil.sendEmail("有新的提现需要处理~", "有新的提现单待处理~", false, admin.getEmail());
                     if (ObjectUtil.isNotEmpty(admin.getTgId())) {
