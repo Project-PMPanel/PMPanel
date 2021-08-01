@@ -245,7 +245,16 @@ public class SubServiceImpl implements SubService {
                 nodeName.append("      - " + v2ray.getName() + "\n");
             }
         }
-        // TODO trojan
+        // trojan
+        List<Trojan> trojanNodes = trojanService.list(new QueryWrapper<Trojan>().le("`class`", user.getClazz()).eq("flag", 1));
+        // 处理trojan
+        if (ObjectUtil.isNotEmpty(trojanNodes)) {
+            // 遍历v2ray节点
+            for (Trojan trojan : trojanNodes) {
+                node.append(getClashTrojanLink(trojan, user.getPasswd()));
+                nodeName.append("      - " + trojan.getName() + "\n");
+            }
+        }
         ClassPathResource classPathResource = new ClassPathResource("config/clash");
         BufferedReader bfreader = new BufferedReader(new InputStreamReader(classPathResource.getInputStream(), "UTF-8"));
         StringBuilder builder = new StringBuilder();
@@ -384,16 +393,46 @@ public class SubServiceImpl implements SubService {
         v2ray += "uuid: " + uuid + ", ";
         v2ray += "alterId: " + v2rayNode.getAlterId() + ", ";
         v2ray += "cipher: " + "auto" + ", ";
+        if (ObjectUtil.isNotEmpty(v2rayNode.getSni()) && !"grpc".equals(v2rayNode.getNetwork())) {
+            v2ray += "servername: " + v2rayNode.getSni();
+        }
+        String host = ObjectUtil.isNotEmpty(v2rayNode.getHost()) ? v2rayNode.getHost() : v2rayNode.getSubServer();
         if ("ws".equals(v2rayNode.getNetwork())) {
             v2ray += "network: " + "ws, ";
             v2ray += "ws-path: " + v2rayNode.getPath() + ", ";
-            v2ray += "ws-headers: {Host: " + v2rayNode.getHost() + "}, ";
+            v2ray += "ws-headers: {Host: " + host + "}, ";
         }
+        if ("grpc".equals(v2rayNode.getNetwork())) {
+            v2ray += "network: " + "grpc, ";
+            v2ray += "servername: " + host + ", ";
+            // $return['grpc-opts']['grpc-service-name'] = ($item['servicename'] != '' ? $item['servicename'] : "");
+            v2ray += "grpc-opts: {grpc-service-name: " + "" + "}, ";
+        }
+        // TODO verify_cert
         if ("tls".equals(v2rayNode.getSecurity())) {
             v2ray += "tls: " + true + ", ";
+            // v2ray += "skip-cert-verify: " + true + ", ";
         }
         v2ray += "udp: " + true + "}\n";
         return v2ray;
+    }
+
+    private String getClashTrojanLink(Trojan trojanNode, String passwd) {
+        String trojan = "  - ";
+        trojan += "{name: " + trojanNode.getName() + ", ";
+        trojan += "type: trojan, ";
+        trojan += "server: " + trojanNode.getSubServer() + ", ";
+        trojan += "port: " + trojanNode.getSubPort() + ", ";
+        trojan += "password: " + passwd + ", ";
+        trojan += "sni: " + trojanNode.getSni() + ", ";
+        trojan += "cipher: " + "auto" + ", ";
+        if (trojanNode.getGrpc()) {
+            trojan += "network: " + "grpc, ";
+            // $return['grpc-opts']['grpc-service-name'] = ($item['servicename'] != '' ? $item['servicename'] : "");
+            trojan += "grpc-opts: {grpc-service-name: " + "" + "}, ";
+        }
+        trojan += "udp: " + true + "}\n";
+        return trojan;
     }
 
     // ##################################################
@@ -450,7 +489,18 @@ public class SubServiceImpl implements SubService {
                         nodeName.append(v2ray.getName() + ", ");
                     }
                 }
-                // TODO trojan
+                // trojan
+                List<Trojan> trojanNodes = trojanService.list(new QueryWrapper<Trojan>().le("`class`", user.getClazz()).eq("flag", 1));
+                // 处理trojan
+                if (ObjectUtil.isNotEmpty(trojanNodes)) {
+                    // 遍历v2ray节点
+                    for (Trojan trojan : trojanNodes) {
+                        builder.append(
+                                trojan.getName() + " = trojan, " + trojan.getSubServer() + ", " + trojan.getSubPort() + ", password = " + user.getPasswd()
+                        );
+                        nodeName.append(trojan.getName() + ", ");
+                    }
+                }
                 // 删除nodeName最后的,和空格
                 nodeName.deleteCharAt(nodeName.length() - 1);
                 nodeName.deleteCharAt(nodeName.length() - 1);
