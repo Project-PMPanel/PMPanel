@@ -19,5 +19,7 @@ public class Trojan extends Node implements Serializable {
 
     private Boolean grpc;
 
+    private String sni;
+
     private static final long serialVersionUID = 1L;
 }

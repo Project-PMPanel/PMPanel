@@ -281,6 +281,7 @@ CREATE TABLE `trojan`  (
   `traffic_rate` float NULL DEFAULT NULL COMMENT '流量倍率',
   `class` int(11) NULL DEFAULT NULL COMMENT '节点等级',
   `speedlimit` int(11) NULL DEFAULT NULL COMMENT '节点限速',
+  `sni` varchar(255) NULL COMMENT 'sni',
   `heartbeat` datetime NULL DEFAULT NULL COMMENT '心跳',
   `flag` int(11) NULL DEFAULT NULL COMMENT '启用停止标志位',
   PRIMARY KEY (`id`)
