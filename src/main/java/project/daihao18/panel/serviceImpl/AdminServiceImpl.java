@@ -21,6 +21,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.daihao18.panel.common.enums.PayStatusEnum;
 import project.daihao18.panel.common.payment.alipay.Alipay;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.common.response.ResultCodeEnum;
@@ -968,6 +969,74 @@ public class AdminServiceImpl implements AdminService {
         Order order = orderService.getOrderByOrderId(orderId);
         if (ObjectUtil.isNotEmpty(order)) {
             return Result.ok().data("order", order);
+        } else {
+            return Result.error().message("无效订单ID").messageEnglish("Invalid Order ID");
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result confirmOrder(String orderId) {
+        Order order = orderService.getOrderByOrderId(orderId);
+        if (ObjectUtil.isNotEmpty(order)) {
+            // 根据订单修改用户
+            redisService.del("panel::user::" + order.getUserId());
+            order.setIsMixedPay(false);
+            order.setMixedMoneyAmount(BigDecimal.ZERO);
+            order.setMixedPayAmount(order.getPrice());
+            // 查询用户当前套餐
+            Order currentPlan = orderService.getCurrentPlan(order.getUserId());
+            // 查询是否新用户
+            int buyCount = orderService.getBuyCountByUserId(order.getUserId());
+            Boolean isNewPayer = buyCount == 0;
+            // 更新订单
+            if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "余额", null, isNewPayer, null, new Date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
+                Date now = new Date();
+                // 给该用户新增资金明细表
+                Funds funds = new Funds();
+                funds.setUserId(order.getUserId());
+                funds.setPrice(BigDecimal.ZERO.subtract(order.getPrice()));
+                funds.setTime(now);
+                funds.setRelatedOrderId(order.getOrderId());
+                funds.setContent(order.getPlanDetailsMap().get("name").toString());
+                funds.setContentEnglish(order.getPlanDetailsMap().get("nameEnglish").toString());
+                fundsService.save(funds);
+
+                // 如果有邀请人,给他加余额,并且给他新增一笔资金明细
+                User user = userService.getById(order.getUserId());
+                if (ObjectUtil.isNotEmpty(user.getParentId())) {
+                    User inviteUser = userService.getById(user.getParentId());
+                    // 用户有等级的话,给返利
+                    if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
+                        redisService.del("panel::user::" + inviteUser.getId());
+                        // 判断是循环返利还是首次返利
+                        if (inviteUser.getInviteCycleEnable()) {
+                            userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                        } else {
+                            // 首次返利,查该用户是否第一次充值
+                            int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                            if (count == 1) {
+                                // 首次
+                                userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                            }
+                        }
+                        // 给邀请人新增返利明细
+                        Funds inviteFund = new Funds();
+                        inviteFund.setUserId(inviteUser.getId());
+                        inviteFund.setPrice(order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                        inviteFund.setTime(now);
+                        inviteFund.setRelatedOrderId(order.getOrderId());
+                        inviteFund.setContent("佣金");
+                        inviteFund.setContentEnglish("Commission");
+                        fundsService.save(inviteFund);
+                        log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
+                    }
+                }
+                return Result.ok();
+            } else {
+                return Result.error();
+            }
         } else {
             return Result.error().message("无效订单ID").messageEnglish("Invalid Order ID");
         }

@@ -114,6 +114,8 @@ public interface AdminService {
 
     Result getOrderByOrderId(String orderId);
 
+    Result confirmOrder(String orderId);
+
     Result getCommission(Integer pageNo, Integer pageSize);
 
     Result getWithdraw(Integer pageNo, Integer pageSize);

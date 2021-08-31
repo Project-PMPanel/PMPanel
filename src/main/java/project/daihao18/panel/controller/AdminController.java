@@ -523,6 +523,16 @@ public class AdminController {
         return adminService.getOrderByOrderId(orderId);
     }
 
+    /**
+     * 管理员手动确认订单支付
+     * @param orderId
+     * @return
+     */
+    @PutMapping("/order/{orderId}")
+    public Result confirmOrder(@PathVariable String orderId) {
+        return adminService.confirmOrder(orderId);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Commission
 
