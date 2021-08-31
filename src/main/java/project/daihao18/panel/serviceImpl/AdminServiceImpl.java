@@ -1006,9 +1006,20 @@ public class AdminServiceImpl implements AdminService {
                 redisService.del("panel::user::" + order.getUserId());
                 // 更新订单为失效状态
                 order.setStatus(PayStatusEnum.INVALID.getStatus());
+                // 查询是否存在返利的关联订单
+                Funds commission = fundsService.getOne(new QueryWrapper<Funds>().eq("related_order_id", order.getOrderId()).eq("content", "佣金").eq("content_english", "Commission"));
+                if (ObjectUtil.isNotEmpty(commission)) {
+                    // 扣除该用户佣金
+                    User inviteUser = userService.getUserById(commission.getUserId(), true);
+                    inviteUser.setMoney(inviteUser.getMoney().subtract(commission.getPrice()));
+                    if (inviteUser.getMoney().compareTo(BigDecimal.ZERO) < 0) {
+                        return Result.error().message("邀请人余额不足,返利扣除失败").messageEnglish("Commission deduction failed");
+                    }
+                    userService.updateById(inviteUser);
+                }
                 return orderService.updateById(order) ? Result.ok() : Result.error();
             }
-            return Result.error();
+            return Result.error().message("用户购买前状态恢复失败").messageEnglish("Can't recover status");
         } else {
             return Result.error().message("无效订单ID").messageEnglish("Invalid Order ID");
         }
