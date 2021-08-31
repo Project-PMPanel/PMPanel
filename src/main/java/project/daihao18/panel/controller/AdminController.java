@@ -524,6 +524,16 @@ public class AdminController {
     }
 
     /**
+     * 订单退款
+     * @param orderId
+     * @return
+     */
+    @PutMapping("/order/refund/{orderId}")
+    public Result refundOrder(@PathVariable String orderId) throws AlipayApiException {
+        return adminService.refundOrder(orderId);
+    }
+
+    /**
      * 管理员手动取消已支付订单(回滚用户状态)
      * @param orderId
      * @return

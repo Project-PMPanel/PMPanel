@@ -114,6 +114,8 @@ public interface AdminService {
 
     Result getOrderByOrderId(String orderId);
 
+    Result refundOrder(String orderId) throws AlipayApiException;
+
     Result cancelOrder(String orderId);
 
     Result confirmOrder(String orderId);

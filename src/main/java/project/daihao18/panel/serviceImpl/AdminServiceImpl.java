@@ -6,6 +6,7 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
+import com.alipay.api.response.AlipayTradeRefundResponse;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -984,6 +985,35 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    public Result refundOrder(String orderId) throws AlipayApiException {
+        Order order = orderService.getOrderByOrderId(orderId);
+        if (ObjectUtil.isNotEmpty(order)) {
+            if ("支付宝".equals(order.getPayType())) {
+                if ("alipay".equals(configService.getValueByName("alipay"))) {
+                    CommonOrder commonOrder = new CommonOrder();
+                    commonOrder.setId(order.getOrderId());
+                    commonOrder.setMixedPayAmount(order.getMixedPayAmount());
+                    AlipayTradeRefundResponse response = this.alipay.refund(commonOrder);
+                    if ("10000".equals(response.getCode())) {
+                        // 更新用户金额
+                        User user = userService.getUserById(order.getUserId(), true);
+                        user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
+                        userService.updateById(user);
+                        redisService.del("panel::user::" + order.getUserId());
+                        return Result.ok();
+                    }
+                }
+            } else {
+                return Result.error().message("该支付方式不支持退款").messageEnglish("The payment method doesn't support refund function");
+            }
+            return Result.error().message("该支付方式不支持退款").messageEnglish("The payment method doesn't support refund function");
+        } else {
+            return Result.error().message("无效订单ID").messageEnglish("Invalid Order ID");
+        }
+    }
+
+    @Override
+    @Transactional
     public Result cancelOrder(String orderId) {
         Order order = orderService.getOrderByOrderId(orderId);
         if (ObjectUtil.isNotEmpty(order)) {
@@ -993,7 +1023,8 @@ public class AdminServiceImpl implements AdminService {
             order.setUserDetailsMap(JSONUtil.toBean(order.getUserDetails(), Map.class));
             order.setPlanDetailsMap(JSONUtil.toBean(order.getPlanDetails(), Map.class));
             // 根据订单的用户详情来恢复用户
-            user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
+            // 金额在这里不做处理,放在退款操作中处理
+            // user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
             user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
             user.setClazz(Integer.parseInt(order.getUserDetailsMap().get("clazz").toString()));
             user.setU(Long.parseLong(order.getUserDetailsMap().get("u").toString()));

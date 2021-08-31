@@ -1,6 +1,7 @@
 package project.daihao18.panel.common.payment.alipay;
 
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
@@ -9,6 +10,7 @@ import com.alipay.api.internal.util.AlipayLogger;
 import com.alipay.api.request.*;
 import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
+import com.alipay.api.response.AlipayTradeRefundResponse;
 import com.ijpay.alipay.AliPayApiConfig;
 import com.ijpay.alipay.AliPayApiConfigKit;
 import lombok.Data;
@@ -319,6 +321,38 @@ public class Alipay {
             return execute;
         } else {
             model.setOutTradeNo(order.getId() + "_1");
+            request.setBizModel(model);
+            if (isCertMode) {
+                execute = alipayClient.certificateExecute(request);
+            } else {
+                execute = alipayClient.execute(request);
+            }
+            if (!"40004".equals(execute.getCode())) {
+                return execute;
+            }
+        }
+        return null;
+    }
+
+    public AlipayTradeRefundResponse refund(CommonOrder order) throws AlipayApiException {
+        AlipayTradeRefundRequest request = new AlipayTradeRefundRequest();
+        AlipayTradeRefundModel model = new AlipayTradeRefundModel();
+        model.setOutTradeNo(order.getId() + "_0");
+        model.setRefundAmount(order.getMixedPayAmount().toString());
+        model.setOutRequestNo(order.getId() + "_" + RandomUtil.randomInt(100, 1000));
+        request.setBizModel(model);
+        AlipayTradeRefundResponse execute = null;
+        if (isCertMode) {
+            execute = alipayClient.certificateExecute(request);
+        } else {
+            execute = alipayClient.execute(request);
+        }
+        if (!"40004".equals(execute.getCode())) {
+            return execute;
+        } else {
+            model.setOutTradeNo(order.getId() + "_1");
+            model.setRefundAmount(order.getMixedPayAmount().toString());
+            model.setOutRequestNo(order.getId() + "_" + RandomUtil.randomInt(100, 1000));
             request.setBizModel(model);
             if (isCertMode) {
                 execute = alipayClient.certificateExecute(request);
