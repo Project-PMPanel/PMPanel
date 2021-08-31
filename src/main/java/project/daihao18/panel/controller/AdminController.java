@@ -524,6 +524,16 @@ public class AdminController {
     }
 
     /**
+     * 管理员手动取消已支付订单(回滚用户状态)
+     * @param orderId
+     * @return
+     */
+    @PutMapping("/order/cancel/{orderId}")
+    public Result cancelOrder(@PathVariable String orderId) {
+        return adminService.cancelOrder(orderId);
+    }
+
+    /**
      * 管理员手动确认订单支付
      * @param orderId
      * @return

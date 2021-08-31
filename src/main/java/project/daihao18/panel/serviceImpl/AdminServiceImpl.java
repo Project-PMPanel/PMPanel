@@ -984,6 +984,38 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    public Result cancelOrder(String orderId) {
+        Order order = orderService.getOrderByOrderId(orderId);
+        if (ObjectUtil.isNotEmpty(order)) {
+            // 查该用户
+            User user = userService.getUserById(order.getUserId(), true);
+            // json转换成map
+            order.setUserDetailsMap(JSONUtil.toBean(order.getUserDetails(), Map.class));
+            order.setPlanDetailsMap(JSONUtil.toBean(order.getPlanDetails(), Map.class));
+            // 根据订单的用户详情来恢复用户
+            user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
+            user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
+            user.setClazz(Integer.parseInt(order.getUserDetailsMap().get("clazz").toString()));
+            user.setU(Long.parseLong(order.getUserDetailsMap().get("u").toString()));
+            user.setD(Long.parseLong(order.getUserDetailsMap().get("d").toString()));
+            user.setTransferEnable(Long.parseLong(order.getUserDetailsMap().get("transferEnable").toString()));
+            user.setNodeConnector(Integer.parseInt(order.getUserDetailsMap().get("nodeConnector").toString()));
+            user.setNodeSpeedlimit(Integer.parseInt(order.getUserDetailsMap().get("nodeSpeedlimit").toString()));
+            // 更新用户
+            if (userService.updateById(user)) {
+                redisService.del("panel::user::" + order.getUserId());
+                // 更新订单为失效状态
+                order.setStatus(PayStatusEnum.INVALID.getStatus());
+                return orderService.updateById(order) ? Result.ok() : Result.error();
+            }
+            return Result.error();
+        } else {
+            return Result.error().message("无效订单ID").messageEnglish("Invalid Order ID");
+        }
+    }
+
+    @Override
+    @Transactional
     public Result confirmOrder(String orderId) {
         Order order = orderService.getOrderByOrderId(orderId);
         if (ObjectUtil.isNotEmpty(order) && (order.getStatus() == 0 || order.getStatus() == 2)) {
