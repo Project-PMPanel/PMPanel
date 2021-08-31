@@ -978,7 +978,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional
     public Result confirmOrder(String orderId) {
         Order order = orderService.getOrderByOrderId(orderId);
-        if (ObjectUtil.isNotEmpty(order)) {
+        if (ObjectUtil.isNotEmpty(order) && (order.getStatus() == 0 || order.getStatus() == 2)) {
             // 根据订单修改用户
             redisService.del("panel::user::" + order.getUserId());
             order.setIsMixedPay(false);
