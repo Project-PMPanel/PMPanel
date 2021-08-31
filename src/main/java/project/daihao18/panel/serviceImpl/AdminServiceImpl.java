@@ -99,6 +99,9 @@ public class AdminServiceImpl implements AdminService {
     private OrderService orderService;
 
     @Autowired
+    private PackageService packageService;
+
+    @Autowired
     private FundsService fundsService;
 
     @Autowired
@@ -118,13 +121,18 @@ public class AdminServiceImpl implements AdminService {
         Map<String, Object> map = new HashMap<>();
         // 获取待办工单数量
         map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().eq("status", 0).isNull("parent_id")));
+        // 获取代办提现单数量
+        map.put("withdrawCount", withdrawService.count(new QueryWrapper<Withdraw>().eq("status", 0)));
+        // 获取在线节点信息
+        map.put("nodeCount", ssService.count(new QueryWrapper<Ss>().eq("flag", true)) + v2rayService.count(new QueryWrapper<V2ray>().eq("flag", true)) + trojanService.count(new QueryWrapper<Trojan>().eq("flag", true)));
+        map.put("offlineCount", ssService.count(new QueryWrapper<Ss>().lt("heartbeat", DateUtil.offsetMinute(new Date(), -2)).eq("flag", true)) + v2rayService.count(new QueryWrapper<V2ray>().lt("heartbeat", DateUtil.offsetMinute(new Date(), -2)).eq("flag", true)) + trojanService.count(new QueryWrapper<Trojan>().lt("heartbeat", DateUtil.offsetMinute(new Date(), -2)).eq("flag", true)));
         // 获取用户数
         map.put("userCount", userService.count());
         map.put("monthRegisterCount", userService.getRegisterCountByDateToNow(DateUtil.beginOfMonth(new Date())));
         map.put("todayRegisterCount", userService.getRegisterCountByDateToNow(DateUtil.beginOfDay(new Date())));
         // 获取收入
-        map.put("monthIncome", orderService.getMonthIncome());
-        map.put("todayIncome", orderService.getTodayIncome());
+        map.put("monthIncome", orderService.getMonthIncome().add(packageService.getMonthIncome()));
+        map.put("todayIncome", orderService.getTodayIncome().add(packageService.getTodayIncome()));
         map.put("todayOrderCount", orderService.getTodayOrderCount());
         map.put("monthPaidUserCount", userService.getMonthPaidUserCount());
         return Result.ok().data(map);

@@ -1,5 +1,8 @@
 package project.daihao18.panel.serviceImpl;
 
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
@@ -12,6 +15,7 @@ import project.daihao18.panel.service.PackageService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Map;
 
 /**
  * @ClassName: PackageServiceImpl
@@ -47,5 +51,30 @@ public class PackageServiceImpl extends ServiceImpl<PackageMapper, Package> impl
                 .eq("id", id)
                 .in("status", PayStatusEnum.WAIT_FOR_PAY.getStatus(), PayStatusEnum.CANCELED.getStatus());
         return this.update(packageUpdateWrapper);
+    }
+
+    @Override
+    public BigDecimal getMonthIncome() {
+        Date now = new Date();
+        QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
+        packageQueryWrapper
+                .select("sum(mixed_pay_amount) as total")
+                .eq("status", 1)
+                .gt("pay_time", DateUtil.beginOfMonth(now))
+                .lt("pay_time", DateUtil.endOfMonth(now));
+        Map<String, Object> map = this.getMap(packageQueryWrapper);
+        return ObjectUtil.isNotEmpty(map) ? new BigDecimal(map.get("total").toString()).setScale(2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal getTodayIncome() {
+        Date now = new Date();
+        QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
+        packageQueryWrapper
+                .select("sum(mixed_pay_amount) as total")
+                .eq("status", 1)
+                .gt("pay_time", DateUtil.beginOfDay(now));
+        Map<String, Object> map = this.getMap(packageQueryWrapper);
+        return ObjectUtil.isNotEmpty(map) ? new BigDecimal(map.get("total").toString()).setScale(2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO;
     }
 }
