@@ -12,6 +12,8 @@ import java.util.List;
  * @Date: 2020-10-07 21:16
  */
 public interface OnlineService extends IService<Online> {
+    Integer getOnlineCountByUserId(Integer userId);
+
     int getOnlineCountByTypeAndId(String type, Integer nodeId);
 
     List<Online> getOnlineByTypeAndId(String type, Integer nodeId);

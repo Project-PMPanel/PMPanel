@@ -18,6 +18,14 @@ import java.util.List;
 @Service
 public class OnlineServiceImpl extends ServiceImpl<OnlineMapper, Online> implements OnlineService {
     @Override
+    public Integer getOnlineCountByUserId(Integer userId) {
+        QueryWrapper<Online> onlineQueryWrapper = new QueryWrapper<>();
+        onlineQueryWrapper
+                .eq("user_id", userId);
+        return this.count(onlineQueryWrapper);
+    }
+
+    @Override
     public int getOnlineCountByTypeAndId(String type, Integer nodeId) {
         QueryWrapper<Online> onlineQueryWrapper = new QueryWrapper<>();
         onlineQueryWrapper

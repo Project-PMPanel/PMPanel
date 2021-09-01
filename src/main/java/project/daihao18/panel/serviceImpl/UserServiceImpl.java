@@ -76,6 +76,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private AnnouncementService announcementService;
 
     @Autowired
+    private OnlineService onlineService;
+
+    @Autowired
     private PlanService planService;
 
     @Autowired
@@ -180,6 +183,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setSubsLink(subUrl);
             // 累计资金,余额+佣金
             user.setFunds(user.getMoney());
+            // 查当前在线ip
+            Integer onlineCount = onlineService.getOnlineCountByUserId(user.getId());
+            user.setOnlineCount(onlineCount);
             // 查询邀请了多少人
             Integer commissionCount = this.count(new QueryWrapper<User>().eq("parent_id", user.getId()));
             user.setCommissionCount(commissionCount);

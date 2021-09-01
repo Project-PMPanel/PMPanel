@@ -203,7 +203,7 @@ public class User implements Serializable, UserDetails {
      * 在线ip数
      */
     @TableField(exist = false)
-    private Integer aliveCount;
+    private Integer onlineCount;
 
     /**
      * 邀请链接
