@@ -396,6 +396,20 @@ CREATE TABLE `v2ray`  (
 );
 
 -- ----------------------------
+-- Table structure for online
+-- ----------------------------
+DROP TABLE IF EXISTS `online`;
+CREATE TABLE `online`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` int(11) NULL COMMENT '用户id',
+  `time` datetime NULL COMMENT '时间',
+  `ip` varchar(50) NULL COMMENT 'ip',
+  `type` varchar(255) NULL COMMENT '节点类型',
+  `node_id` int(11) NULL COMMENT '节点id',
+  PRIMARY KEY (`id`)
+);
+
+-- ----------------------------
 -- Table structure for withdraw
 -- ----------------------------
 DROP TABLE IF EXISTS `withdraw`;

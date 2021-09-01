@@ -38,6 +38,8 @@ public interface AdminService {
 
     Result getNode(HttpServletRequest request, String type);
 
+    Result getNodeInfoByTypeAndNodeId(HttpServletRequest request, String type, Integer nodeId) throws IOException, IPFormatException;
+
     Result addSsNode(Ss ss);
 
     Result editSsNode(Ss ss);

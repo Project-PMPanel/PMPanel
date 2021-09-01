@@ -70,6 +70,9 @@ public class AdminServiceImpl implements AdminService {
     private TrojanService trojanService;
 
     @Autowired
+    private OnlineService onlineService;
+
+    @Autowired
     private DetectListService detectListService;
 
     @Autowired
@@ -335,6 +338,11 @@ public class AdminServiceImpl implements AdminService {
             case "ss":
                 IPage<Ss> ssIPage = ssService.getPageNode(pageNo, pageSize, sortField, sortOrder);
                 List<Ss> sss = ssIPage.getRecords();
+                // 查询online
+                sss.stream().forEach(ss -> {
+                    Integer count = onlineService.getOnlineCountByTypeAndId("ss", ss.getId());
+                    ss.setOnlineCount(count);
+                });
                 map.put("data", sss);
                 map.put("pageNo", ssIPage.getCurrent());
                 map.put("totalCount", ssIPage.getTotal());
@@ -342,6 +350,10 @@ public class AdminServiceImpl implements AdminService {
             case "v2ray":
                 IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize, sortField, sortOrder);
                 List<V2ray> v2rays = v2rayIPage.getRecords();
+                v2rays.stream().forEach(v2ray -> {
+                    Integer count = onlineService.getOnlineCountByTypeAndId("v2ray", v2ray.getId());
+                    v2ray.setOnlineCount(count);
+                });
                 map.put("data", v2rays);
                 map.put("pageNo", v2rayIPage.getCurrent());
                 map.put("totalCount", v2rayIPage.getTotal());
@@ -349,6 +361,10 @@ public class AdminServiceImpl implements AdminService {
             case "trojan":
                 IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize, sortField, sortOrder);
                 List<Trojan> trojans = trojanIPage.getRecords();
+                trojans.stream().forEach(trojan -> {
+                    Integer count = onlineService.getOnlineCountByTypeAndId("trojan", trojan.getId());
+                    trojan.setOnlineCount(count);
+                });
                 map.put("data", trojans);
                 map.put("pageNo", trojanIPage.getCurrent());
                 map.put("totalCount", trojanIPage.getTotal());
@@ -364,6 +380,49 @@ public class AdminServiceImpl implements AdminService {
             List<AliveIp> aliveIps = aliveIpService.list(aliveIpQueryWrapper);
             node.setOnline(aliveIps.size());
         }*/
+        return Result.ok().data("data", map);
+    }
+
+    @Override
+    public Result getNodeInfoByTypeAndNodeId(HttpServletRequest request, String type, Integer nodeId) throws IOException, IPFormatException {
+        int pageNo = Integer.parseInt(request.getParameter("pageNo"));
+        int pageSize = Integer.parseInt(request.getParameter("pageSize"));
+        IPage<Online> page = new Page<>(pageNo, pageSize);
+        QueryWrapper<Online> onlineQueryWrapper = new QueryWrapper<>();
+        onlineQueryWrapper.eq("type", type).eq("node_id", nodeId);
+        page = onlineService.page(page, onlineQueryWrapper);
+        List<Online> onlines = page.getRecords();
+
+        List<Map<String, Object>> onlineIps = new ArrayList<>();
+        ClassPathResource classPathResource = new ClassPathResource("qqwry.ipdb");
+        City db = new City(classPathResource.getInputStream());
+        for (Online online : onlines) {
+            Map<String, Object> userMapIp = new HashMap<>();
+            userMapIp.put("userId", online.getUserId());
+            userMapIp.put("ip", online.getIp());
+            userMapIp.put("time", online.getTime());
+            // 查ip归属
+            CityInfo info = db.findInfo(online.getIp(), "CN");
+            if (ObjectUtil.isNotEmpty(info.getCountryName())) {
+                userMapIp.put("country", info.getCountryName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getRegionName())) {
+                userMapIp.put("region", info.getRegionName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getCityName())) {
+                userMapIp.put("city", info.getCityName());
+            }
+            if (ObjectUtil.isNotEmpty(info.getIspDomain())) {
+                userMapIp.put("isp", info.getIspDomain());
+            }
+            onlineIps.add(userMapIp);
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("data", onlineIps);
+        map.put("pageNo", page.getCurrent());
+        map.put("totalCount", page.getTotal());
+
         return Result.ok().data("data", map);
     }
 

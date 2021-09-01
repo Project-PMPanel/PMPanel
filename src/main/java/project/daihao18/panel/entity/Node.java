@@ -43,5 +43,8 @@ public class Node implements Serializable {
 
     private boolean flag;
 
+    @TableField(exist = false)
+    private int onlineCount;
+
     private static final long serialVersionUID = 1L;
 }

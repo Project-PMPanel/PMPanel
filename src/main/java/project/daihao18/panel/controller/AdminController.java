@@ -127,6 +127,16 @@ public class AdminController {
     }
 
     /**
+     * 根据nodeId获取详情
+     * @param nodeId
+     * @return
+     */
+    @GetMapping("/node/{type}/{nodeId}")
+    public Result getNodeInfoByTypeAndNodeId(HttpServletRequest request, @PathVariable String type, @PathVariable Integer nodeId) throws IOException, IPFormatException {
+        return adminService.getNodeInfoByTypeAndNodeId(request, type, nodeId);
+    }
+
+    /**
      * 新增SS节点
      * @param ss
      * @return
