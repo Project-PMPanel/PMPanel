@@ -61,6 +61,11 @@ public class UserController {
         return userService.getAnnouncement();
     }
 
+    @GetMapping("/notify")
+    public Result getNotifyInfo() {
+        return userService.getNotifyInfo();
+    }
+
     /**
      * 获取流量详情
      * @param request

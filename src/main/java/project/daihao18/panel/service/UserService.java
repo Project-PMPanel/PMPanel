@@ -42,6 +42,8 @@ public interface UserService extends IService<User> {
 
     Result getAnnouncement();
 
+    Result getNotifyInfo();
+
     Result resetInviteCode(Integer userId);
 
     Result getPlan(Integer userId);

@@ -416,6 +416,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public Result getNotifyInfo() {
+        String notifyInfo = configService.getValueByName("notifyInfo");
+        Map<String, String> data = new HashMap<>();
+        try {
+            if (ObjectUtil.isNotEmpty(notifyInfo)) {
+                String[] info = notifyInfo.split("-");
+                data.put("type", info[0]);
+                data.put("title", info[1]);
+                data.put("content", info[2]);
+                return Result.ok().data("notify", data);
+            }
+        } catch (Exception e) {
+            return Result.ok().data("notify", null);
+        }
+        return Result.ok().data("notify", null);
+    }
+
+    @Override
     public Result resetInviteCode(Integer userId) {
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
         userUpdateWrapper
