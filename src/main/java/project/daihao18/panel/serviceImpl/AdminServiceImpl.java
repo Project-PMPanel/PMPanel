@@ -743,6 +743,10 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public Result deleteUserById(Integer id) {
+        User user = userService.getUserById(id, true);
+        if (user.getIsAdmin() == 1) {
+            return Result.error().message("不能删除管理员用户").messageEnglish("Can't delete admin user");
+        }
         if (userService.removeById(id)) {
             redisService.deleteByKeys("panel::user::*");
             return Result.ok().message("删除成功").messageEnglish("Delete Successfully");
