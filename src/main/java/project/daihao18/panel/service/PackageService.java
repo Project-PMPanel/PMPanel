@@ -1,8 +1,10 @@
 package project.daihao18.panel.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.entity.Package;
 
+import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -20,4 +22,6 @@ public interface PackageService extends IService<Package> {
     BigDecimal getMonthIncome();
 
     BigDecimal getTodayIncome();
+
+    Result getPackage(HttpServletRequest request);
 }

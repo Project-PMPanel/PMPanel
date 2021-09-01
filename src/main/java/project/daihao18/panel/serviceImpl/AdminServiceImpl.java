@@ -1185,6 +1185,11 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public Result getPackage(HttpServletRequest request) {
+        return packageService.getPackage(request);
+    }
+
+    @Override
     public Result getCommission(Integer pageNo, Integer pageSize) {
         Map<String, Object> map = fundsService.getCommission(pageNo, pageSize);
         return Result.ok().data("data", map);

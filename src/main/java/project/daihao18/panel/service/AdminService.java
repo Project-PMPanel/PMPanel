@@ -122,6 +122,8 @@ public interface AdminService {
 
     Result confirmOrder(String orderId);
 
+    Result getPackage(HttpServletRequest request);
+
     Result getCommission(Integer pageNo, Integer pageSize);
 
     Result getWithdraw(Integer pageNo, Integer pageSize);

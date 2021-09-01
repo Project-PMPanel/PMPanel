@@ -564,6 +564,19 @@ public class AdminController {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////   Package
+
+    /**
+     * 分页查询有效流量包订单
+     * @param request
+     * @return
+     */
+    @GetMapping("/package")
+    public Result getPackage(HttpServletRequest request) {
+        return adminService.getPackage(request);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /////   Commission
 
     /**
