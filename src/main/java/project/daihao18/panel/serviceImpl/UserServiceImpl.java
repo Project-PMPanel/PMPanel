@@ -449,6 +449,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    public Order getLatestPlan(Integer userId) {
+        return orderService.getLatestPlan(userId);
+    }
+
+    @Override
     public Result getCurrentPlan(Integer userId) {
         return Result.ok().data("plan", orderService.getCurrentPlan(userId));
     }

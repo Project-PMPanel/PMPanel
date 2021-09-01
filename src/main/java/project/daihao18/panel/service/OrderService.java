@@ -18,6 +18,8 @@ import java.util.List;
  */
 public interface OrderService extends IService<Order> {
 
+    Order getLatestPlan(Integer userId);
+
     Order getCurrentPlan(Integer userId);
 
     boolean deleteOrderByOrderId(String orderId);

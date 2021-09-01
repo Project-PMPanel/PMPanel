@@ -1085,30 +1085,42 @@ public class AdminServiceImpl implements AdminService {
             // 根据订单的用户详情来恢复用户
             // 金额在这里不做处理,放在退款操作中处理
             // user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
-            user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
-            user.setClazz(Integer.parseInt(order.getUserDetailsMap().get("clazz").toString()));
-            user.setU(Long.parseLong(order.getUserDetailsMap().get("u").toString()));
-            user.setD(Long.parseLong(order.getUserDetailsMap().get("d").toString()));
-            user.setTransferEnable(Long.parseLong(order.getUserDetailsMap().get("transferEnable").toString()));
-            user.setNodeConnector(Integer.parseInt(order.getUserDetailsMap().get("nodeConnector").toString()));
-            user.setNodeSpeedlimit(Integer.parseInt(order.getUserDetailsMap().get("nodeSpeedlimit").toString()));
-            // 更新用户
-            if (userService.updateById(user)) {
-                redisService.del("panel::user::" + order.getUserId());
-                // 更新订单为失效状态
-                order.setStatus(PayStatusEnum.INVALID.getStatus());
-                // 查询是否存在返利的关联订单
-                Funds commission = fundsService.getOne(new QueryWrapper<Funds>().eq("related_order_id", order.getOrderId()).eq("content", "佣金").eq("content_english", "Commission"));
-                if (ObjectUtil.isNotEmpty(commission)) {
-                    // 扣除该用户佣金
-                    User inviteUser = userService.getUserById(commission.getUserId(), true);
-                    inviteUser.setMoney(inviteUser.getMoney().subtract(commission.getPrice()));
-                    if (inviteUser.getMoney().compareTo(BigDecimal.ZERO) < 0) {
-                        return Result.error().message("邀请人余额不足,返利扣除失败").messageEnglish("Commission deduction failed");
-                    }
-                    userService.updateById(inviteUser);
+            // 根据当前套餐来返还用户状态
+            Result data = userService.getCurrentPlan(user.getId());
+            Order plan = (Order) data.getData().get("plan");
+            // 查看用户最新的套餐,若最新的套餐与当前套餐不同,则不允许返还当前套餐
+            Order latestPlan = userService.getLatestPlan(user.getId());
+            // 如果要取消的订单是该用户最新的一笔订单
+            if ( order.getOrderId().equals(latestPlan.getOrderId())) {
+                if (plan.getOrderId().equals(order.getOrderId())) {
+                    user.setClazz(Integer.parseInt(order.getUserDetailsMap().get("clazz").toString()));
+                    user.setU(Long.parseLong(order.getUserDetailsMap().get("u").toString()));
+                    user.setD(Long.parseLong(order.getUserDetailsMap().get("d").toString()));
+                    user.setTransferEnable(Long.parseLong(order.getUserDetailsMap().get("transferEnable").toString()));
+                    user.setNodeConnector(Integer.parseInt(order.getUserDetailsMap().get("nodeConnector").toString()));
+                    user.setNodeSpeedlimit(Integer.parseInt(order.getUserDetailsMap().get("nodeSpeedlimit").toString()));
                 }
-                return orderService.updateById(order) ? Result.ok() : Result.error();
+                user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
+                // 更新用户
+                if (userService.updateById(user)) {
+                    redisService.del("panel::user::" + order.getUserId());
+                    // 更新订单为失效状态
+                    order.setStatus(PayStatusEnum.INVALID.getStatus());
+                    // 查询是否存在返利的关联订单
+                    Funds commission = fundsService.getOne(new QueryWrapper<Funds>().eq("related_order_id", order.getOrderId()).eq("content", "佣金").eq("content_english", "Commission"));
+                    if (ObjectUtil.isNotEmpty(commission)) {
+                        // 扣除该用户佣金
+                        User inviteUser = userService.getUserById(commission.getUserId(), true);
+                        inviteUser.setMoney(inviteUser.getMoney().subtract(commission.getPrice()));
+                        if (inviteUser.getMoney().compareTo(BigDecimal.ZERO) < 0) {
+                            return Result.error().message("邀请人余额不足,返利扣除失败").messageEnglish("Commission deduction failed");
+                        }
+                        userService.updateById(inviteUser);
+                    }
+                    return orderService.updateById(order) ? Result.ok() : Result.error();
+                }
+            } else {
+                return Result.error().message("请按套餐顺序做取消").messageEnglish("Please cancel in order");
             }
             return Result.error().message("用户购买前状态恢复失败").messageEnglish("Can't recover status");
         } else {

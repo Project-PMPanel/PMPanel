@@ -48,6 +48,8 @@ public interface UserService extends IService<User> {
 
     Result getPlan(Integer userId);
 
+    Order getLatestPlan(Integer userId);
+
     Result getCurrentPlan(Integer userId);
 
     Result addOrder(User user, Order order);

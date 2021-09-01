@@ -50,6 +50,25 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private Alipay alipay;
 
     @Override
+    public Order getLatestPlan(Integer userId) {
+        QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
+        orderQueryWrapper
+                .eq("status", PayStatusEnum.SUCCESS.getStatus())
+                .eq("user_id", userId)
+                .orderByDesc("expire")
+                .last("LIMIT 1");
+        Order order = this.getOne(orderQueryWrapper);
+        // json转换成map
+        if (ObjectUtil.isNotEmpty(order)) {
+            order.setUserDetailsMap(JSONUtil.toBean(order.getUserDetails(), Map.class));
+            order.setPlanDetailsMap(JSONUtil.toBean(order.getPlanDetails(), Map.class));
+            return order;
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public Order getCurrentPlan(Integer userId) {
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
         orderQueryWrapper
