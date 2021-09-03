@@ -69,7 +69,7 @@ public class AuthController {
 
     @GetMapping("/getEmailCheckCode")
     public Result getEmailCheckCode(@RequestParam Map<String, Object> params) throws MessagingException {
-        return EmailUtil.send(Integer.parseInt(params.get("type").toString()), "验证邮件", null, true, params.get("email").toString());
+        return EmailUtil.send(Integer.parseInt(params.get("type").toString()), null, null, true, params.get("email").toString());
     }
 
     @RequestMapping("/login/{source}")

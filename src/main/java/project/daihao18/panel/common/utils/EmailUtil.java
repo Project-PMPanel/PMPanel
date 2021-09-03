@@ -110,16 +110,33 @@ public class EmailUtil {
                 // 1分钟内第一次请求验证码,开始计时
                 redisService.expire("panel::CheckCodeLimit::" + sendTo, 60);
             }
-            text = "您好,您的验证码为:" + "<font color='red'>" + checkCode + "</font><br/>";
+            StringBuilder content = new StringBuilder();
+            content.append("尊敬的用户您好,<br/><br/>");
+            content.append("您在 {siteName} 的申请的验证码为:<br/>");
+            content.append("<font color='red'>");
+            content.append(checkCode);
+            content.append("</font><br/>");
+            content.append("有效期5分钟");
+
+            // 获取要发信的内容
+            String siteName = configService.getValueByName("siteName");
+            String siteUrl = configService.getValueByName("siteUrl");
+            subject = "验证邮件";
+            // 获取通知续费邮件模板
+            String body = configService.getValueByName("mailTemplate");
+            body = body.replaceAll("\\{content}", content.toString());
+            body = body.replaceAll("\\{siteName}", siteName);
+            body = body.replaceAll("\\{siteUrl}", siteUrl);
+            body = body.replaceAll("\\{title}", subject);
             switch (configService.getValueByName("mailType")) {
                 case "smtp":
-                    return sendEmailBySmtp(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                    return sendEmailBySmtp(subject, body, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                 case "postalAPI":
-                    return sendEmailByPostalAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                    return sendEmailByPostalAPI(subject, body, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                 case "aliyunAPI":
-                    return sendEmailByAliyunAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                    return sendEmailByAliyunAPI(subject, body, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                 case "mailgunAPI":
-                    return sendEmailByMailgunAPI(subject, text, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
+                    return sendEmailByMailgunAPI(subject, body, isHtml, sendTo, 0) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
         return null;

@@ -237,10 +237,16 @@ public class AdminServiceImpl implements AdminService {
         String siteName = configService.getValueByName("siteName");
         String siteUrl = configService.getValueByName("siteUrl");
         String title = siteName + " - 过期提醒";
+        StringBuilder content = new StringBuilder();
+        content.append("尊敬的用户您好,<br/><br/>");
+        content.append("您在{siteName}的会员即将过期<br/>");
+        content.append("为保证会员服务的正常使用,请您尽快续费,以免服务失效~");
         // 获取通知续费邮件模板
-        String content = configService.getValueByName("renewMail");
-        content = content.replaceAll("\\{siteName}", siteName);
-        content = content.replaceAll("\\{siteUrl}", siteUrl);
+        String body = configService.getValueByName("mailTemplate");
+        body = body.replaceAll("\\{content}", content.toString());
+        body = body.replaceAll("\\{siteName}", siteName);
+        body = body.replaceAll("\\{siteUrl}", siteUrl);
+        body = body.replaceAll("\\{title}", title);
         // 查到期时间<3天的用户
         List<String> emails = userService.getExpiredUser().stream().map(User::getEmail).collect(Collectors.toList());
         Long lSize = redisService.lSize("panel::emails");
@@ -252,19 +258,19 @@ public class AdminServiceImpl implements AdminService {
         String mailType = configService.getValueByName("notifyMailType");
         if ("smtp".equals(mailType)) {
             for (int i = 0; i < 10; i++) {
-                String finalContent = content;
+                String finalBody = body;
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         while (redisService.lSize("panel::emails") != 0) {
                             String email = (String) redisService.lLeftPop("panel::emails");
-                            EmailUtil.sendEmail(title, finalContent, true, email);
+                            EmailUtil.sendEmail(title, finalBody, true, email);
                         }
                     }
                 }).start();
             }
         } else if ("postalAPI".equals(mailType) || "aliyunAPI".equals(mailType)) {
-            EmailUtil.sendEmail(title, content, true, null);
+            EmailUtil.sendEmail(title, body, true, null);
         }
         redisService.del("panel::emailTitle");
         redisService.del("panel::emailContent");
@@ -1034,20 +1040,32 @@ public class AdminServiceImpl implements AdminService {
                 // 存储要发信的内容
                 redisService.set("panel::emailTitle", announcement.getTitle());
                 redisService.set("panel::emailContent", announcement.getHtml());
+                // 获取要发信的内容
+                String siteName = configService.getValueByName("siteName");
+                String siteUrl = configService.getValueByName("siteUrl");
+                String title = announcement.getTitle();
+                String content = announcement.getHtml();
+                // 获取通知续费邮件模板
+                String body = configService.getValueByName("mailTemplate");
+                body = body.replaceAll("\\{content}", content);
+                body = body.replaceAll("\\{siteName}", siteName);
+                body = body.replaceAll("\\{siteUrl}", siteUrl);
+                body = body.replaceAll("\\{title}", title);
                 if ("smtp".equals(configService.getValueByName("notifyMailType"))) {
                     for (int i = 0; i < 10; i++) {
+                        String finalBody = body;
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
                                 while (redisService.lSize("panel::emails") != 0) {
                                     String email = (String) redisService.lLeftPop("panel::emails");
-                                    EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, email);
+                                    EmailUtil.sendEmail(announcement.getTitle(), finalBody, true, email);
                                 }
                             }
                         }).start();
                     }
                 } else {
-                    EmailUtil.sendEmail(announcement.getTitle(), announcement.getHtml(), true, null);
+                    EmailUtil.sendEmail(announcement.getTitle(), body, true, null);
                 }
                 redisService.del("panel::emailTitle");
                 redisService.del("panel::emailContent");
