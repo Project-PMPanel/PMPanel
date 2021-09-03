@@ -1498,7 +1498,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             monthList.add(map2);
         }
         // 剩余天数数据填充0
-        for (int i = LocalDateTimeUtil.now().getDayOfMonth(); i < LocalDate.now().lengthOfMonth(); i++) {
+        for (int i = LocalDateTimeUtil.now().getDayOfMonth(); i <= LocalDate.now().lengthOfMonth(); i++) {
             Map<String, Object> map = new HashMap<>();
             Map<String, Object> map2 = new HashMap<>();
             map.put("day", i + "号");
