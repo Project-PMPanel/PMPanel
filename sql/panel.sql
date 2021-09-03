@@ -323,7 +323,7 @@ CREATE TABLE `user` (
   `d` bigint DEFAULT '0' COMMENT '下载流量字节',
   `p` bigint DEFAULT '0' COMMENT '过去已用字节',
   `transfer_enable` bigint DEFAULT '0' COMMENT '可用流量字节',
-  `passwd` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '后端连接密码uuid',
+  `passwd` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '后端连接密码uuid',
   `node_speedlimit` int DEFAULT '0' COMMENT '节点限速',
   `node_connector` int DEFAULT '0' COMMENT '节点连接数',
   `node_group` int DEFAULT '0' COMMENT '节点组',
