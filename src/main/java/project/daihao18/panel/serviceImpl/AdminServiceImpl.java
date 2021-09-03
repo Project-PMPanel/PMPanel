@@ -271,7 +271,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getOtherConfig() {
-        String[] keys = {"muSuffix", "userTrafficLogLimitDays"};
+        String[] keys = {"muSuffix", "userTrafficLogLimitDays", "notifyInfo"};
         Map<String, Object> otherConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
