@@ -1,6 +1,7 @@
 package project.daihao18.panel.serviceImpl;
 
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
@@ -32,13 +33,16 @@ import project.daihao18.panel.common.utils.EmailUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.common.utils.UuidUtil;
 import project.daihao18.panel.entity.*;
+import project.daihao18.panel.entity.Package;
 import project.daihao18.panel.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -140,6 +144,73 @@ public class AdminServiceImpl implements AdminService {
         map.put("todayIncome", orderService.getTodayIncome().add(packageService.getTodayIncome()));
         map.put("todayOrderCount", orderService.getTodayOrderCount());
         map.put("monthPaidUserCount", userService.getMonthPaidUserCount());
+        // 获取收入详情
+        List<Map<String, Object>> monthList = new ArrayList<>();
+        LocalDateTime timeNow = LocalDateTime.now();
+        // 本月的第一天00:00:00
+        LocalDateTime monthBeginTimeStart = timeNow.with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
+        // 本月的最后一天23:59:59
+        LocalDateTime monthEndTimeEnd = timeNow.with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
+        for (int i = 0; i < timeNow.getMonthValue() ; i++) {
+            // 查订单收入
+            QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
+            orderQueryWrapper
+                    .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .ne("pay_type", "余额")
+                    .or()
+                    .eq("status", 1)
+                    .eq("status", 3);
+            List<Order> orders = orderService.list(orderQueryWrapper);
+            // 查流量包收入
+            QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
+            packageQueryWrapper
+                    .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .ne("pay_type", "余额")
+                    .or()
+                    .eq("status", 1)
+                    .eq("status", 3);
+            List<Package> packages = packageService.list(packageQueryWrapper);
+            // 该月份套餐订阅收入
+            BigDecimal thisMonthOrderIncome = BigDecimal.ZERO;
+            // 该月份流量包收入
+            BigDecimal thisMonthPackageIncome = BigDecimal.ZERO;
+            if (ObjectUtil.isNotEmpty(orders)) {
+                for (Order order : orders) {
+                    thisMonthOrderIncome = thisMonthOrderIncome.add(order.getMixedPayAmount());
+                }
+            }
+            if (ObjectUtil.isNotEmpty(packages)) {
+                for (Package packagee : packages) {
+                    thisMonthPackageIncome = thisMonthPackageIncome.add(packagee.getMixedPayAmount());
+                }
+            }
+            Map<String, Object> map1 = new HashMap<>();
+            Map<String, Object> map2 = new HashMap<>();
+            map1.put("month", (timeNow.getMonthValue() - (timeNow.getMonthValue() - i - 1)) + "月");
+            map1.put("type", "订阅");
+            map1.put("value", thisMonthOrderIncome);
+            map2.put("month", (timeNow.getMonthValue() - (timeNow.getMonthValue() - i - 1)) + "月");
+            map2.put("type", "流量包");
+            map2.put("value",thisMonthPackageIncome);
+            monthList.add(map1);
+            monthList.add(map2);
+        }
+        // 补齐当年剩余月份
+        for (int i = timeNow.getMonthValue() + 1; i <= 12 ; i++) {
+            Map<String, Object> map1 = new HashMap<>();
+            Map<String, Object> map2 = new HashMap<>();
+            map1.put("month", i + "月");
+            map1.put("type", "订阅");
+            map1.put("value", 0);
+            map2.put("month", i + "月");
+            map2.put("type", "流量包");
+            map2.put("value",0);
+            monthList.add(map1);
+            monthList.add(map2);
+        }
+        map.put("incomeDetails", monthList);
         return Result.ok().data(map);
     }
 
