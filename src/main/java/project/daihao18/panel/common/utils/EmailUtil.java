@@ -79,6 +79,10 @@ public class EmailUtil {
      * @throws MessagingException
      */
     public static Result send(Integer emailType, String subject, String text, boolean isHtml, String sendTo) throws MessagingException {
+        // 过滤gmail邮箱重复批量注册
+        if (sendTo.split("@")[0].contains("+") || sendTo.split("@")[0].contains(".")) {
+            return Result.error().message("非法邮箱").messageEnglish("Invalid email address");
+        }
         // emailType: 0注册邮件, 1找回密码邮件, 2修改email的验证邮件
         if (emailType == 0 || emailType == 1 || emailType == 2) {
             Integer id = userService.getIdByEmail(sendTo);
