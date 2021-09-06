@@ -1193,11 +1193,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 // 删除该用户缓存
                 redisService.del("panel::user::" + user.getId());
                 // 给管理员发信
+                // 获取要发信替换字段
+                String title = "有新的提现需要处理~";
+                String siteName = configService.getValueByName("siteName");
+                String siteUrl = configService.getValueByName("siteUrl");
+                StringBuilder content = new StringBuilder();
+                content.append("提现账号: " + withdraw.getAccount() + "<br/>");
+                content.append("提现金额: " + withdraw.getAmount() + "CNY <br/>");
+                // 获取邮件模板
+                String body = configService.getValueByName("mailTemplate");
+                body = body.replaceAll("\\{content}", content.toString());
+                body = body.replaceAll("\\{siteName}", siteName);
+                body = body.replaceAll("\\{siteUrl}", siteUrl);
+                body = body.replaceAll("\\{title}", title);
                 List<User> admins = this.getAdmins();
                 for (User admin : admins) {
-                    EmailUtil.sendEmail("有新的提现需要处理~", "有新的提现单待处理~", false, admin.getEmail());
+                    EmailUtil.sendEmail(title, body, true, admin.getEmail());
                     if (ObjectUtil.isNotEmpty(admin.getTgId())) {
-                        bot.execute(new SendMessage(admin.getTgId(), "有新的提现单待处理~"));
+                        bot.execute(new SendMessage(admin.getTgId(), "有新的提现单待处理~\n" + "提现账号: " + withdraw.getAccount() + "\n" + "提现金额: " + withdraw.getAmount() + " CNY"));
                     }
                 }
                 return Result.ok().message("已发起提现申请,请等待审核").messageEnglish("Please wait for review");
@@ -1258,9 +1271,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             ticketService.update(ticketUpdateWrapper);
         }
         if (ticketService.save(ticket)) {
+            // 获取要发信替换字段
+            String title = "有新的工单需要处理~";
+            String siteName = configService.getValueByName("siteName");
+            String siteUrl = configService.getValueByName("siteUrl");
+            StringBuilder content = new StringBuilder();
+            content.append(ticket.getTitle() + "<br/><br/>");
+            content.append(ticket.getContent());
+            // 获取邮件模板
+            String body = configService.getValueByName("mailTemplate");
+            body = body.replaceAll("\\{content}", content.toString());
+            body = body.replaceAll("\\{siteName}", siteName);
+            body = body.replaceAll("\\{siteUrl}", siteUrl);
+            body = body.replaceAll("\\{title}", title);
             List<User> admins = this.getAdmins();
             for (User admin : admins) {
-                EmailUtil.sendEmail("新的工单提醒~", "有新的工单待处理~", false, admin.getEmail());
+                EmailUtil.sendEmail(title, body, true, admin.getEmail());
                 if (ObjectUtil.isNotEmpty(admin.getTgId())) {
                     bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
                 }

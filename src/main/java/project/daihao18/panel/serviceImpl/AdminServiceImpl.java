@@ -912,7 +912,20 @@ public class AdminServiceImpl implements AdminService {
                 // send to user
                 Ticket parentTicket = ticketService.getById(ticket.getParentId());
                 User user = userService.getById(parentTicket.getUserId());
-                EmailUtil.sendEmail(configService.getValueByName("siteName") + " - 工单提醒", "您提交的工单已回复<br/><a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>", true, user.getEmail());
+                // 获取要发信替换字段
+                String siteName = configService.getValueByName("siteName");
+                String siteUrl = configService.getValueByName("siteUrl");
+                String title = siteName + " - 工单提醒";
+                StringBuilder content = new StringBuilder();
+                content.append("您提交的工单已回复<br/>");
+                content.append("<a href='" + configService.getValueByName("siteUrl") + "/ticket/detail/" + ticket.getParentId() + "'>点击查看详情</a>");
+                // 获取邮件模板
+                String body = configService.getValueByName("mailTemplate");
+                body = body.replaceAll("\\{content}", content.toString());
+                body = body.replaceAll("\\{siteName}", siteName);
+                body = body.replaceAll("\\{siteUrl}", siteUrl);
+                body = body.replaceAll("\\{title}", title);
+                EmailUtil.sendEmail(title, body, true, user.getEmail());
                 // tg bot
                 if (ObjectUtil.isNotEmpty(user.getTgId())) {
                     bot.execute(new SendMessage(user.getTgId(), "您提交的工单已回复"));
@@ -1325,9 +1338,26 @@ public class AdminServiceImpl implements AdminService {
             if (fundsService.save(funds)) {
                 // 发送消息给用户
                 User user = userService.getById(withdraw.getUserId());
-                EmailUtil.sendEmail("提现到账提醒", "您申请的提现已到账,请注意查看", false, user.getEmail());
+                // 获取要发信替换字段
+                String title = "提现到账提醒";
+                String siteName = configService.getValueByName("siteName");
+                String siteUrl = configService.getValueByName("siteUrl");
+                StringBuilder content = new StringBuilder();
+                content.append("Hi, " + user.getEmail() + "~,<br/><br/>");
+                content.append("您申请的提现已到账,请注意查看<br/>");
+                content.append("提现单号: " + withdraw.getId() + "<br/>");
+                content.append("提现账号: " + withdraw.getAccount() + "<br/>");
+                content.append("提现金额: " + withdraw.getAmount() + " CNY<br/>");
+                content.append("感谢您对 " + siteName + " 发展的支持~");
+                // 获取邮件模板
+                String body = configService.getValueByName("mailTemplate");
+                body = body.replaceAll("\\{content}", content.toString());
+                body = body.replaceAll("\\{siteName}", siteName);
+                body = body.replaceAll("\\{siteUrl}", siteUrl);
+                body = body.replaceAll("\\{title}", title);
+                EmailUtil.sendEmail(title, body, true, user.getEmail());
                 if (ObjectUtil.isNotEmpty(user.getTgId())) {
-                    bot.execute(new SendMessage(user.getTgId(), "您申请的提现已到账,请注意查看"));
+                    bot.execute(new SendMessage(user.getTgId(), "您申请的提现已到账,请注意查看\n" + "提现单号: " + withdraw.getId() + "\n" + "提现账号: " + withdraw.getAccount() + "\n" + "提现金额: " + withdraw.getAmount() + " CNY\n" + "感谢您对 " + siteName + " 发展的支持~"));
                 }
                 return Result.ok().message("操作成功").messageEnglish("Successfully");
             }
