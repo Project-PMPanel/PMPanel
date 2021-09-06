@@ -97,6 +97,8 @@ public class SubServiceImpl implements SubService {
                 return getClashSub(user);
             case "surge4":
                 return getSurge4Sub(user);
+            case "ss":
+                return getSSOriginal(user);
             case "v2ray":
                 return getV2rayOriginal(user);
         }
@@ -514,6 +516,57 @@ public class SubServiceImpl implements SubService {
         }
         bfreader.close();
         return builder.toString();
+    }
+
+    // ##################################################
+    // SIP008
+    private String getSSOriginal(User user) {
+        String subs = "";
+        String ssSubs = "";
+
+        // 用户已过期 或者 流量已用完
+        if (user.getExpireIn().before(new Date()) || user.getU() + user.getD() > user.getTransferEnable()) {
+            Ss ss = new Ss();
+            ss.setName("已过期或流量已用完");
+            ss.setMethod("aes-256-gcm");
+            ss.setSubServer("192.168.1.1");
+            ss.setSubPort(8080);
+            ssSubs += getSSOriginal(ss, user.getPasswd());
+            subs += ssSubs;
+            return Base64.getEncoder().encodeToString(subs.getBytes());
+        }
+
+        // ss
+        List<Ss> ssNodes = ssService.list(new QueryWrapper<Ss>().le("`class`", user.getClazz()).eq("flag", 1));
+        // 处理ss
+        if (ObjectUtil.isNotEmpty(ssNodes)) {
+            Map<String, Object> content = new HashMap<>();
+            List<Map<String, Object>> servers = new ArrayList<>();
+            content.put("version", "1");
+            // 遍历ss节点
+            for (Ss ss : ssNodes) {
+                servers.add(getSSOriginal(ss, user.getPasswd()));
+            }
+            content.put("servers", servers);
+            ssSubs = JSONUtil.toJsonStr(content);
+        }
+        subs += ssSubs;
+        return subs;
+    }
+
+    private Map<String, Object> getSSOriginal(Ss ss, String passwd) {
+        Map<String, Object> server = new HashMap<>();
+        server.put("id", UuidUtil.uuid3(ss.getName()));
+        server.put("remarks", ss.getName());
+        server.put("server", ss.getSubServer());
+        server.put("server_port", ss.getSubPort());
+        server.put("password", passwd);
+        server.put("method",ss.getMethod());
+        return server;
+
+        /*String prefix = Base64.getUrlEncoder().encodeToString((ss.getMethod() + ":" + passwd).getBytes()) + "@" + ss.getSubServer() + ":" + ss.getSubPort() + "#";
+        String link = prefix + URLUtil.encode(ss.getName(), "UTF-8");
+        return "ss://" + link + "\n";*/
     }
 
     // ##################################################
