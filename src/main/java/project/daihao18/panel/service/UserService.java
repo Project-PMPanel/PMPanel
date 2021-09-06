@@ -34,8 +34,6 @@ public interface UserService extends IService<User> {
 
     Result findPass(User user);
 
-    List<User> listNoMultiUser();
-
     boolean cleanExpiredUserData();
 
     Result refreshInfo(Integer userId);
@@ -89,8 +87,6 @@ public interface UserService extends IService<User> {
     Result getFunds(HttpServletRequest request);
 
     Result submitWithdraw(User user, Withdraw withdraw);
-
-    User getMuUserByNodeServer(String port);
 
     boolean handleCommission(Integer userId, BigDecimal commission);
 

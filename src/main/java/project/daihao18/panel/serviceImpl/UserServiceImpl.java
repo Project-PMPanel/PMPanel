@@ -382,13 +382,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<User> listNoMultiUser() {
-        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-        userQueryWrapper.eq("is_multi_user", 0);
-        return this.list(userQueryWrapper);
-    }
-
-    @Override
     @Transactional
     public boolean cleanExpiredUserData() {
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
@@ -1219,16 +1212,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
         return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
-    }
-
-    @Override
-    @Cacheable(cacheNames = "panel::user", key = "'mu'", unless = "#result == null")
-    public User getMuUserByNodeServer(String port) {
-        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-        userQueryWrapper
-                .eq("port", Integer.parseInt(port))
-                .ne("is_multi_user", 0);
-        return this.getOne(userQueryWrapper);
     }
 
     @Override
