@@ -88,8 +88,7 @@ public class DailyJobTaskService {
         // 开始同步用户昨日流量
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
         userUpdateWrapper
-                .setSql("p=u+d")
-                .eq("is_multi_user", 0);
+                .setSql("p=u+d");
         userService.update(userUpdateWrapper);
         // 将每个用户昨日流量同步到userMonthlyTraffic表
         List<Map<String, Object>> traffics = userTrafficLogService.getYesterdayTraffic();
