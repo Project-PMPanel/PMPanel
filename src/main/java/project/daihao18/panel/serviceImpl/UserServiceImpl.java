@@ -1532,10 +1532,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public User getUserByUUID(String uuid) {
+    public User getUserByPasswd(String passwd) {
         QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
         userQueryWrapper
-                .eq("uuid", uuid);
+                .eq("passwd", passwd);
         return this.getOne(userQueryWrapper);
     }
 

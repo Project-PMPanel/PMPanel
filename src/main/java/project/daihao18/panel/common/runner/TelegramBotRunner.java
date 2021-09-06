@@ -151,10 +151,10 @@ public class TelegramBotRunner implements ApplicationRunner {
     }
 
     private void handleStart(Message message) {
-        // 用户启用bot,根据uuid查该用户
+        // 用户启用bot,根据passwd查该用户
         if (message.text().split(" ").length > 1) {
-            String uuid = message.text().split(" ")[1];
-            User user = userService.getUserByUUID(uuid);
+            String passwd = message.text().split(" ")[1];
+            User user = userService.getUserByPasswd(passwd);
             if (ObjectUtil.isNotEmpty(user) && ObjectUtil.isEmpty(user.getTgId())) {
                 user.setTgId(message.from().id());
                 if (userService.updateById(user)) {

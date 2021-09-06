@@ -116,7 +116,7 @@ public interface UserService extends IService<User> {
 
     Result getTrafficDetails(Integer userId);
 
-    User getUserByUUID(String uuid);
+    User getUserByPasswd(String uuid);
 
     User getUserByTgId(Integer tgId);
 
