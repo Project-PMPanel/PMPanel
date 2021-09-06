@@ -261,80 +261,97 @@ public class SubServiceImpl implements SubService {
         BufferedReader bfreader = new BufferedReader(new InputStreamReader(classPathResource.getInputStream(), "UTF-8"));
         StringBuilder builder = new StringBuilder();
         String tmpContent = null;
+        String rule = "";
         while ((tmpContent = bfreader.readLine()) != null) {
-            Boolean autoChoose = false;
+            builder.append(tmpContent + "\n");
+            if (tmpContent.equals("proxies:")) {
+                builder.append(node);
+            }
             Boolean nodeChoose = false;
             Boolean direct = false;
             Boolean needDirect = false;
             Boolean needReject = false;
             Boolean needContinue = false;
-
-            builder.append(tmpContent + "\n");
-            if (tmpContent.equals("proxies:")) {
-                builder.append(node);
-            }
             if (tmpContent.equals("  - name: \uD83D\uDE80 节点选择")) {
-                autoChoose = true;
-                needDirect = true;
+                rule = "节点选择";
             }
             if (tmpContent.equals("  - name: \uD83C\uDF0D 国外媒体")) {
-                autoChoose = true;
-                nodeChoose = true;
-                direct = true;
+                rule = "国外媒体";
             }
             if (tmpContent.equals("  - name: \uD83D\uDCF2 电报信息")) {
-                nodeChoose = true;
-                direct = true;
+                rule = "电报信息";
             }
             if (tmpContent.equals("  - name: Ⓜ️ 微软服务")) {
-                nodeChoose = true;
-                direct = true;
+                rule = "微软服务";
             }
             if (tmpContent.equals("  - name: \uD83C\uDF4E 苹果服务")) {
-                nodeChoose = true;
-                direct = true;
+                rule = "苹果服务";
             }
             if (tmpContent.equals("  - name: \uD83D\uDCE2 谷歌FCM")) {
-                autoChoose = true;
-                nodeChoose = true;
-                direct = true;
+                rule = "谷歌FCM";
             }
             if (tmpContent.equals("  - name: \uD83C\uDFAF 全球直连")) {
-                autoChoose = true;
-                nodeChoose = true;
-                needDirect = true;
-                needContinue = true;
+                rule = "全球直连";
             }
             if (tmpContent.equals("  - name: \uD83D\uDED1 全球拦截")) {
-                needDirect = true;
-                needReject = true;
-                needContinue = true;
+                rule = "全球拦截";
             }
             if (tmpContent.equals("  - name: \uD83C\uDF43 应用净化")) {
-                needDirect = true;
-                needReject = true;
-                needContinue = true;
+                rule = "应用净化";
             }
             if (tmpContent.equals("  - name: \uD83D\uDC1F 漏网之鱼")) {
-                autoChoose = true;
-                nodeChoose = true;
-                direct = true;
+                rule = "漏网之鱼";
             }
             if (tmpContent.equals("    proxies:")) {
+                switch (rule) {
+                    case "节点选择":
+                        needDirect = true;
+                        break;
+                    case "国外媒体":
+                        nodeChoose = true;
+                        break;
+                    case "电报信息":
+                        nodeChoose = true;
+                        break;
+                    case "微软服务":
+                        nodeChoose = true;
+                        direct = true;
+                        break;
+                    case "苹果服务":
+                        nodeChoose = true;
+                        direct = true;
+                        break;
+                    case "谷歌FCM":
+                        nodeChoose = true;
+                        break;
+                    case "全球直连":
+                        needDirect = true;
+                        needContinue = true;
+                        break;
+                    case "全球拦截":
+                        needReject = true;
+                        needContinue = true;
+                        break;
+                    case "应用净化":
+                        needReject = true;
+                        needContinue = true;
+                        break;
+                    case "漏网之鱼":
+                        nodeChoose = true;
+                        direct = true;
+                        break;
+                }
+                if (nodeChoose) {
+                    builder.append("      - \uD83D\uDE80 节点选择\n");
+                }
+                if (direct) {
+                    builder.append("      - \uD83C\uDFAF 全球直连\n");
+                }
                 if (needDirect) {
                     builder.append("      - DIRECT\n");
                 }
                 if (needReject) {
                     builder.append("      - REJECT\n");
-                }
-                if (nodeChoose) {
-                    builder.append("      - \uD83D\uDE80 节点选择\n");
-                }
-                if (autoChoose) {
-                    builder.append("      - ♻️ 自动选择\n");
-                }
-                if (direct) {
-                    builder.append("      - \uD83C\uDFAF 全球直连\n");
                 }
                 if (needContinue) {
                     continue;
