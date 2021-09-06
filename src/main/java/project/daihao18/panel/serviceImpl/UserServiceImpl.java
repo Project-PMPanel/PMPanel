@@ -1506,17 +1506,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (todayTraffic.size() > 0) {
             Map<String, Object> map = new HashMap<>();
             Map<String, Object> map2 = new HashMap<>();
-            map.put("day", DateUtil.dayOfMonth(new Date()) + "号");
+            map.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map.put("traffic", "上传");
             map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("u"))))));
-            map2.put("day",DateUtil.dayOfMonth(new Date()) + "号");
+            map2.put("day",LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map2.put("traffic", "下载");
             map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("d"))))));
             monthList.add(map);
             monthList.add(map2);
         }
         // 剩余天数数据填充0
-        for (int i = LocalDateTimeUtil.now().getDayOfMonth(); i <= LocalDate.now().lengthOfMonth(); i++) {
+        for (int i = LocalDateTimeUtil.now().getDayOfMonth() + 1; i <= LocalDate.now().lengthOfMonth(); i++) {
             Map<String, Object> map = new HashMap<>();
             Map<String, Object> map2 = new HashMap<>();
             map.put("day", i + "号");
