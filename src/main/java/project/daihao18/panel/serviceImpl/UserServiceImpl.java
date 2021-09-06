@@ -1158,6 +1158,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result submitWithdraw(User user, Withdraw withdraw) {
+        Lock lock = new ReentrantLock();
+        lock.lock();
         // 判断金额是否足够提现
         if (user.getMoney().compareTo(withdraw.getAmount()) < 0) {
             return Result.error().message("余额不足").messageEnglish("You don't have enough money to withdraw");
@@ -1206,11 +1208,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                         bot.execute(new SendMessage(admin.getTgId(), "有新的提现单待处理~\n" + "提现账号: " + withdraw.getAccount() + "\n" + "提现金额: " + withdraw.getAmount() + " CNY"));
                     }
                 }
+                lock.unlock();
                 return Result.ok().message("已发起提现申请,请等待审核").messageEnglish("Please wait for review");
             } else {
+                lock.unlock();
                 return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             }
         }
+        lock.unlock();
         return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
@@ -1243,6 +1248,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public Result saveTicket(Integer userId, Ticket ticket, String type) {
+        Lock lock = new ReentrantLock();
+        lock.lock();
         ticket.setUserId(userId);
         ticket.setTime(new Date());
         if ("reply".equals(type)) {
@@ -1274,8 +1281,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
                 }
             }
+            lock.unlock();
             return Result.ok().message("提交成功").messageEnglish("Submit successfully");
         } else {
+            lock.unlock();
             return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
     }
