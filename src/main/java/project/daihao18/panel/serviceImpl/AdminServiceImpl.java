@@ -131,10 +131,17 @@ public class AdminServiceImpl implements AdminService {
         map.put("ticketCount", ticketService.count(new QueryWrapper<Ticket>().eq("status", 0).isNull("parent_id")));
         // 获取代办提现单数量
         map.put("withdrawCount", withdrawService.count(new QueryWrapper<Withdraw>().eq("status", 0)));
-        // 获取在线节点信息
+        // 获取在线节点数量
         map.put("nodeCount", ssService.count(new QueryWrapper<Ss>().eq("flag", true)) + v2rayService.count(new QueryWrapper<V2ray>().eq("flag", true)) + trojanService.count(new QueryWrapper<Trojan>().eq("flag", true)));
         Date now = new Date();
-        map.put("offlineCount", ssService.count(new QueryWrapper<Ss>().lt("heartbeat", DateUtil.offsetMinute(now, -2)).eq("flag", true).or().isNull("heartbeat")) + v2rayService.count(new QueryWrapper<V2ray>().lt("heartbeat", DateUtil.offsetMinute(now, -2)).eq("flag", true).or().isNull("heartbeat")) + trojanService.count(new QueryWrapper<Trojan>().lt("heartbeat", DateUtil.offsetMinute(now, -2)).eq("flag", true).or().isNull("heartbeat")));
+        // 获取离线节点数量
+        QueryWrapper<Ss> ssQueryWrapper = new QueryWrapper<Ss>()
+                .eq("flag", true).and(wrapper -> wrapper.lt("heartbeat", DateUtil.offsetMinute(now, -2)).or().isNull("heartbeat"));
+        QueryWrapper<V2ray> v2rayQueryWrapper = new QueryWrapper<V2ray>()
+                .eq("flag", true).and(wrapper -> wrapper.lt("heartbeat", DateUtil.offsetMinute(now, -2)).or().isNull("heartbeat"));
+        QueryWrapper<Trojan> trojanQueryWrapper = new QueryWrapper<Trojan>()
+                .eq("flag", true).and(wrapper -> wrapper.lt("heartbeat", DateUtil.offsetMinute(now, -2)).or().isNull("heartbeat"));
+        map.put("offlineCount", ssService.count(ssQueryWrapper) + v2rayService.count(v2rayQueryWrapper) + trojanService.count(trojanQueryWrapper));
         // 获取用户数
         map.put("userCount", userService.count());
         map.put("monthRegisterCount", userService.getRegisterCountByDateToNow(DateUtil.beginOfMonth(new Date())));
