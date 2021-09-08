@@ -45,14 +45,15 @@ public class UserTrafficLogServiceImpl extends ServiceImpl<UserTrafficLogMapper,
     }
 
     @Override
-    public List<Map<String, Object>> getTodayTraffic() {
+    public Map<String, Object> getTodayTraffic(Integer userId) {
         Date now = new Date();
         QueryWrapper<UserTrafficLog> userTrafficLogQueryWrapper = new QueryWrapper<>();
         userTrafficLogQueryWrapper
                 .select("user_id", "sum(u * rate) as u", "sum(d * rate) as d")
+                .eq("user_id", userId)
                 .gt("log_time", DateUtil.beginOfDay(now).getTime() / 1000)
                 .groupBy("user_id");
-        return this.listMaps(userTrafficLogQueryWrapper);
+        return this.getMap(userTrafficLogQueryWrapper);
     }
 
     @Override

@@ -1502,16 +1502,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
         // 统计今日流量
-        List<Map<String, Object>> todayTraffic = userTrafficLogService.getTodayTraffic();
-        if (todayTraffic.size() > 0) {
+        Map<String, Object> todayTraffic = userTrafficLogService.getTodayTraffic(userId);
+        if (ObjectUtil.isNotEmpty(todayTraffic)) {
             Map<String, Object> map = new HashMap<>();
             Map<String, Object> map2 = new HashMap<>();
             map.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map.put("traffic", "上传");
-            map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("u"))))));
+            map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("u"))))));
             map2.put("day",LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map2.put("traffic", "下载");
-            map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get(0).get("d"))))));
+            map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("d"))))));
             monthList.add(map);
             monthList.add(map2);
         }
