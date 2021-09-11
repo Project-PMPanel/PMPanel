@@ -226,24 +226,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         loginWith.put("google", Boolean.parseBoolean(JSONUtil.toBean(google, Map.class).get("enable").toString()));
         if (regEnable) {
             boolean inviteOnly = Boolean.parseBoolean(configService.getValueByName("inviteOnly"));
-            // 如果启用了邮件注册,查询邮件后缀
+            // 查询邮件后缀
             List<String> emailList = null;
-            if (panelMailRegisterEnable) {
-                emailList = Arrays.asList(configService.getValueByName("enableEmailSuffix").split(";").clone());
-            }
-            return panelMailRegisterEnable ?
-                    Result.ok()
-                            .data("panelSiteRegisterEnable", regEnable)
-                            .data("panelSiteRegisterInviteOnly", inviteOnly)
-                            .data("emailList", emailList)
-                            .data("panelSiteTitle", siteName)
-                            .data("panelMailRegisterEnable", panelMailRegisterEnable)
-                            .data("loginWith",loginWith):
-                    Result.ok()
-                            .data("panelSiteRegisterEnable", regEnable)
-                            .data("panelSiteRegisterInviteOnly", inviteOnly)
-                            .data("panelSiteTitle", siteName)
-                            .data("panelMailRegisterEnable", panelMailRegisterEnable).data("loginWith",loginWith);
+            emailList = Arrays.asList(configService.getValueByName("enableEmailSuffix").split(";").clone());
+            return Result.ok()
+                    .data("panelSiteRegisterEnable", regEnable)
+                    .data("panelSiteRegisterInviteOnly", inviteOnly)
+                    .data("emailList", emailList)
+                    .data("panelSiteTitle", siteName)
+                    .data("panelMailRegisterEnable", panelMailRegisterEnable)
+                    .data("loginWith", loginWith);
         } else {
             return Result.ok()
                     .data("panelSiteRegisterEnable", regEnable)
