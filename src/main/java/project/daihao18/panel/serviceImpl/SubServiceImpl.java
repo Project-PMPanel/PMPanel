@@ -263,101 +263,16 @@ public class SubServiceImpl implements SubService {
         String tmpContent = null;
         String rule = "";
         while ((tmpContent = bfreader.readLine()) != null) {
-            builder.append(tmpContent + "\n");
             if (tmpContent.equals("proxies:")) {
+                builder.append(tmpContent + "\n");
                 builder.append(node);
+                continue;
             }
-            Boolean nodeChoose = false;
-            Boolean direct = false;
-            Boolean needDirect = false;
-            Boolean needReject = false;
-            Boolean needContinue = false;
-            if (tmpContent.equals("  - name: \uD83D\uDE80 节点选择")) {
-                rule = "节点选择";
-            }
-            if (tmpContent.equals("  - name: \uD83C\uDF0D 国外媒体")) {
-                rule = "国外媒体";
-            }
-            if (tmpContent.equals("  - name: \uD83D\uDCF2 电报信息")) {
-                rule = "电报信息";
-            }
-            if (tmpContent.equals("  - name: Ⓜ️ 微软服务")) {
-                rule = "微软服务";
-            }
-            if (tmpContent.equals("  - name: \uD83C\uDF4E 苹果服务")) {
-                rule = "苹果服务";
-            }
-            if (tmpContent.equals("  - name: \uD83D\uDCE2 谷歌FCM")) {
-                rule = "谷歌FCM";
-            }
-            if (tmpContent.equals("  - name: \uD83C\uDFAF 全球直连")) {
-                rule = "全球直连";
-            }
-            if (tmpContent.equals("  - name: \uD83D\uDED1 全球拦截")) {
-                rule = "全球拦截";
-            }
-            if (tmpContent.equals("  - name: \uD83C\uDF43 应用净化")) {
-                rule = "应用净化";
-            }
-            if (tmpContent.equals("  - name: \uD83D\uDC1F 漏网之鱼")) {
-                rule = "漏网之鱼";
-            }
-            if (tmpContent.equals("    proxies:")) {
-                switch (rule) {
-                    case "节点选择":
-                        needDirect = true;
-                        break;
-                    case "国外媒体":
-                        nodeChoose = true;
-                        break;
-                    case "电报信息":
-                        nodeChoose = true;
-                        break;
-                    case "微软服务":
-                        nodeChoose = true;
-                        direct = true;
-                        break;
-                    case "苹果服务":
-                        nodeChoose = true;
-                        direct = true;
-                        break;
-                    case "谷歌FCM":
-                        nodeChoose = true;
-                        break;
-                    case "全球直连":
-                        needDirect = true;
-                        needContinue = true;
-                        break;
-                    case "全球拦截":
-                        needReject = true;
-                        needContinue = true;
-                        break;
-                    case "应用净化":
-                        needReject = true;
-                        needContinue = true;
-                        break;
-                    case "漏网之鱼":
-                        nodeChoose = true;
-                        direct = true;
-                        break;
-                }
-                if (nodeChoose) {
-                    builder.append("      - \uD83D\uDE80 节点选择\n");
-                }
-                if (direct) {
-                    builder.append("      - \uD83C\uDFAF 全球直连\n");
-                }
-                if (needDirect) {
-                    builder.append("      - DIRECT\n");
-                }
-                if (needReject) {
-                    builder.append("      - REJECT\n");
-                }
-                if (needContinue) {
-                    continue;
-                }
+            if (tmpContent.equals("      {node}")) {
                 builder.append(nodeName);
+                continue;
             }
+            builder.append(tmpContent + "\n");
         }
         bfreader.close();
         return builder.toString();
@@ -475,8 +390,8 @@ public class SubServiceImpl implements SubService {
         builder.append("#---------------------------------------------------#\n\n");
         String tmpContent = null;
         while ((tmpContent = bfreader.readLine()) != null) {
-            builder.append(tmpContent + "\n");
             if (tmpContent.equals("[Proxy]")) {
+                builder.append(tmpContent + "\n");
                 builder.append("DIRECT = direct\n");
                 // ss
                 List<Ss> ssNodes = ssService.list(new QueryWrapper<Ss>().le("`class`", user.getClazz()).eq("flag", 1));
@@ -524,12 +439,16 @@ public class SubServiceImpl implements SubService {
                 nodeName.deleteCharAt(nodeName.length() - 1);
                 nodeName.deleteCharAt(nodeName.length() - 1);
                 nodeName.append("\n");
-            } else if (tmpContent.startsWith("\uD83D\uDE80 节点选择") || tmpContent.startsWith("♻️ 自动选择") || tmpContent.startsWith("\uD83C\uDF0D 国外媒体") || tmpContent.startsWith("\uD83D\uDCF2 电报信息") || tmpContent.startsWith("Ⓜ️ 微软服务") || tmpContent.startsWith("\uD83C\uDF4E 苹果服务") || tmpContent.startsWith("\uD83D\uDCE2 谷歌FCM") || tmpContent.startsWith("\uD83D\uDC1F 漏网之鱼")) {
-                // 删除回车
-                builder.deleteCharAt(builder.length() - 1);
+                continue;
+            } else if (tmpContent.contains("{node}")) {
+                builder.append(tmpContent);
+                // 删除{node}
+                builder.delete(builder.length() - 6, builder.length());
                 // 添加节点名称
                 builder.append(nodeName);
+                continue;
             }
+            builder.append(tmpContent + "\n");
         }
         bfreader.close();
         return builder.toString();

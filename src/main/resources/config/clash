@@ -9,33 +9,52 @@ proxy-groups:
   - name: 🚀 节点选择
     type: select
     proxies:
+      - 🎯 全球直连
+      {node}
   - name: 🌍 国外媒体
     type: select
     proxies:
+      - 🚀 节点选择
+      {node}
   - name: 📲 电报信息
     type: select
     proxies:
+      - 🚀 节点选择
+      {node}
   - name: Ⓜ️ 微软服务
     type: select
     proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      {node}
   - name: 🍎 苹果服务
     type: select
     proxies:
+      - 🚀 节点选择
+      - 🎯 全球直连
+      {node}
   - name: 📢 谷歌FCM
     type: select
     proxies:
+      - 🚀 节点选择
+      {node}
   - name: 🐟 漏网之鱼
     type: select
     proxies:
+      - 🚀 节点选择
+      {node}
   - name: 🎯 全球直连
     type: select
     proxies:
+      - DIRECT
   - name: 🛑 全球拦截
     type: select
     proxies:
+      - REJECT
   - name: 🍃 应用净化
     type: select
     proxies:
+      - REJECT
 rules:
  - DOMAIN-SUFFIX,acl4.ssr,🎯 全球直连
  - DOMAIN-SUFFIX,ip6-localhost,🎯 全球直连
