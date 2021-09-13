@@ -224,11 +224,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Map<String, Boolean> loginWith = new HashMap<>();
         loginWith.put("enable", Boolean.parseBoolean(oauthConfig.get("enable").toString()));
         loginWith.put("google", Boolean.parseBoolean(JSONUtil.toBean(google, Map.class).get("enable").toString()));
+        // 查询邮件后缀
+        List<String> emailList = null;
+        emailList = Arrays.asList(configService.getValueByName("enableEmailSuffix").split(";").clone());
         if (regEnable) {
             boolean inviteOnly = Boolean.parseBoolean(configService.getValueByName("inviteOnly"));
-            // 查询邮件后缀
-            List<String> emailList = null;
-            emailList = Arrays.asList(configService.getValueByName("enableEmailSuffix").split(";").clone());
             return Result.ok()
                     .data("panelSiteRegisterEnable", regEnable)
                     .data("panelSiteRegisterInviteOnly", inviteOnly)
@@ -239,8 +239,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         } else {
             return Result.ok()
                     .data("panelSiteRegisterEnable", regEnable)
+                    .data("emailList", emailList)
                     .data("panelSiteTitle", siteName)
-                    .data("panelMailRegisterEnable", panelMailRegisterEnable).data("loginWith",loginWith);
+                    .data("panelMailRegisterEnable", panelMailRegisterEnable)
+                    .data("loginWith",loginWith);
         }
     }
 
