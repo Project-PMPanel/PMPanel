@@ -1,10 +1,8 @@
 package project.daihao18.panel.common.configs;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * @ClassName: GlobalCorsConfig
@@ -13,26 +11,13 @@ import org.springframework.web.filter.CorsFilter;
  * @Date: 2020/01/31 11:24 下午
  */
 @Configuration
-public class GlobalCorsConfig {
-    private CorsConfiguration buildConfig() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.addAllowedOrigin("*");
-        corsConfiguration.addAllowedHeader("*");
-        corsConfiguration.addAllowedMethod("*");
-        corsConfiguration.addExposedHeader("Content-Type");
-        corsConfiguration.addExposedHeader("X-Requested-With");
-        corsConfiguration.addExposedHeader("accept");
-        corsConfiguration.addExposedHeader("Origin");
-        corsConfiguration.addExposedHeader("Access-Control-Request-Method");
-        corsConfiguration.addExposedHeader("Access-Control-Request-Headers");
-        corsConfiguration.setAllowCredentials(true);
-        return corsConfiguration;
-    }
-
-    @Bean
-    public CorsFilter corsFilter() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", buildConfig());
-        return new CorsFilter(source);
+public class GlobalCorsConfig implements WebMvcConfigurer {
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("*")
+                .maxAge(3600)
+                .allowCredentials(true);
     }
 }
