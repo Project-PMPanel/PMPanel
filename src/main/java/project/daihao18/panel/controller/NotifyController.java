@@ -108,7 +108,7 @@ public class NotifyController {
                     // 查询用户当前套餐
                     Order currentPlan = orderService.getCurrentPlan(order.getUserId());
                     // 查询是否新用户
-                    int buyCount = orderService.getBuyCountByUserId(order.getUserId());
+                    Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
                     Boolean isNewPayer = buyCount == 0;
                     // 更新订单
                     if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "支付宝", params.get("buyer_id"), isNewPayer, params.get("trade_no"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
@@ -136,7 +136,7 @@ public class NotifyController {
                                     userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                                 } else {
                                     // 首次返利,查该用户是否第一次充值
-                                    int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                                    Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
                                     if (count == 1) {
                                         // 首次
                                         userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));

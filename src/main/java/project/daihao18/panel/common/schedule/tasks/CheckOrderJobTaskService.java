@@ -91,7 +91,7 @@ public class CheckOrderJobTaskService {
                         // 查询用户当前套餐
                         Order currentPlan = orderService.getCurrentPlan(existOrder.getUserId());
                         // 查询是否新用户
-                        int buyCount = orderService.getBuyCountByUserId(existOrder.getUserId());
+                        Long buyCount = orderService.getBuyCountByUserId(existOrder.getUserId());
                         Boolean isNewPayer = buyCount == 0;
                         // 更新订单
                         if (orderService.updateFinishedOrder(existOrder.getIsMixedPay(), existOrder.getMixedMoneyAmount(), existOrder.getMixedPayAmount(), "支付宝", response.getBuyerUserId(), isNewPayer, response.getTradeNo(), response.getSendPayDate(), PayStatusEnum.SUCCESS.getStatus(), existOrder.getId())) {
@@ -121,7 +121,7 @@ public class CheckOrderJobTaskService {
                                         userService.handleCommission(inviteUser.getId(), commission);
                                     } else {
                                         // 首次返利,查该用户是否第一次充值
-                                        int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                                        Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
                                         if (count == 1) {
                                             // 首次
                                             log.info("id为{}的用户开始首次返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));

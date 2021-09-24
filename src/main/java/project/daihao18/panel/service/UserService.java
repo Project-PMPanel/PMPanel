@@ -108,7 +108,7 @@ public interface UserService extends IService<User> {
 
     Result getUserByPageAndQueryParam(HttpServletRequest request, Integer pageNo, Integer pageSize, boolean cacheFlag);
 
-    Integer getRegisterCountByDateToNow(DateTime beginDate);
+    Long getRegisterCountByDateToNow(DateTime beginDate);
 
     List<User> getExpiredUser();
 

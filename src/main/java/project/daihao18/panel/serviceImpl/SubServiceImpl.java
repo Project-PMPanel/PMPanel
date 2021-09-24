@@ -176,7 +176,7 @@ public class SubServiceImpl implements SubService {
         }
         String link = prefix + "?remarks=";
         String suffix = ss.getName();
-        link = link + URLUtil.encode(suffix, "UTF-8");
+        link = link + URLUtil.encode(suffix, StandardCharsets.UTF_8);
         return "ss://" + link + "\n";
     }
 
@@ -203,7 +203,7 @@ public class SubServiceImpl implements SubService {
                 suffix += "&tls=1";
             }
         }
-        link = link + URLUtil.encode(suffix, "UTF-8");
+        link = link + URLUtil.encode(suffix, StandardCharsets.UTF_8);
         return "vmess://" + link + "\n";
     }
 
@@ -211,7 +211,7 @@ public class SubServiceImpl implements SubService {
         String prefix = passwd + "@" + trojan.getSubServer() + ":" + trojan.getSubPort();
         String link = prefix + "?remarks=";
         String suffix = trojan.getName();
-        link = link + URLUtil.encode(suffix, "UTF-8");
+        link = link + URLUtil.encode(suffix, StandardCharsets.UTF_8);
         return "trojan://" + link + "\n";
     }
 
@@ -327,20 +327,22 @@ public class SubServiceImpl implements SubService {
         v2ray += "uuid: " + uuid + ", ";
         v2ray += "alterId: " + v2rayNode.getAlterId() + ", ";
         v2ray += "cipher: " + "auto" + ", ";
-        if (ObjectUtil.isNotEmpty(v2rayNode.getSni()) && !"grpc".equals(v2rayNode.getNetwork())) {
-            v2ray += "servername: " + v2rayNode.getSni();
-        }
-        String host = ObjectUtil.isNotEmpty(v2rayNode.getHost()) ? v2rayNode.getHost() : v2rayNode.getSubServer();
         if ("ws".equals(v2rayNode.getNetwork())) {
+            String host = ObjectUtil.isNotEmpty(v2rayNode.getHost()) ? v2rayNode.getHost() : v2rayNode.getSubServer();
             v2ray += "network: " + "ws, ";
             v2ray += "ws-path: " + v2rayNode.getPath() + ", ";
             v2ray += "ws-headers: {Host: " + host + "}, ";
         }
         if ("grpc".equals(v2rayNode.getNetwork())) {
             v2ray += "network: " + "grpc, ";
-            v2ray += "servername: " + host + ", ";
+            v2ray += "servername: " + v2rayNode.getSubServer() + ", ";
             // $return['grpc-opts']['grpc-service-name'] = ($item['servicename'] != '' ? $item['servicename'] : "");
-            v2ray += "grpc-opts: {grpc-service-name: " + "" + "}, ";
+            String serviceName = v2rayNode.getSni();
+            if (ObjectUtil.isEmpty(serviceName)) {
+                v2ray += "grpc-opts: {grpc-service-name: \"\"}, ";
+            } else {
+                v2ray += "grpc-opts: {grpc-service-name: " + v2rayNode.getSni() + "}, ";
+            }
         }
         // TODO verify_cert
         if ("tls".equals(v2rayNode.getSecurity())) {

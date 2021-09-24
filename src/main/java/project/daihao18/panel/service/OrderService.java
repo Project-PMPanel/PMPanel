@@ -32,11 +32,11 @@ public interface OrderService extends IService<Order> {
 
     List<Order> getFinishedOrder();
 
-    int getBuyCountByUserId(Integer userId);
+    Long getBuyCountByUserId(Integer userId);
 
     boolean updateFinishedOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Boolean isNewPayer, String tradeNo, Date payTime, Integer status, Integer id);
 
-    Integer getUsedCountByPlanId(Integer planId);
+    Long getUsedCountByPlanId(Integer planId);
 
     Result getOrder(HttpServletRequest request);
 

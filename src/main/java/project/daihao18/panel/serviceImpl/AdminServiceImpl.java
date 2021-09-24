@@ -425,8 +425,8 @@ public class AdminServiceImpl implements AdminService {
                 List<Ss> sss = ssIPage.getRecords();
                 // 查询online
                 sss.stream().forEach(ss -> {
-                    Integer count = onlineService.getOnlineCountByTypeAndId("ss", ss.getId());
-                    ss.setOnlineCount(count);
+                    Long count = onlineService.getOnlineCountByTypeAndId("ss", ss.getId());
+                    ss.setOnlineCount(count.intValue());
                 });
                 map.put("data", sss);
                 map.put("pageNo", ssIPage.getCurrent());
@@ -436,8 +436,8 @@ public class AdminServiceImpl implements AdminService {
                 IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize, sortField, sortOrder);
                 List<V2ray> v2rays = v2rayIPage.getRecords();
                 v2rays.stream().forEach(v2ray -> {
-                    Integer count = onlineService.getOnlineCountByTypeAndId("v2ray", v2ray.getId());
-                    v2ray.setOnlineCount(count);
+                    Long count = onlineService.getOnlineCountByTypeAndId("v2ray", v2ray.getId());
+                    v2ray.setOnlineCount(count.intValue());
                 });
                 map.put("data", v2rays);
                 map.put("pageNo", v2rayIPage.getCurrent());
@@ -447,8 +447,8 @@ public class AdminServiceImpl implements AdminService {
                 IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize, sortField, sortOrder);
                 List<Trojan> trojans = trojanIPage.getRecords();
                 trojans.stream().forEach(trojan -> {
-                    Integer count = onlineService.getOnlineCountByTypeAndId("trojan", trojan.getId());
-                    trojan.setOnlineCount(count);
+                    Long count = onlineService.getOnlineCountByTypeAndId("trojan", trojan.getId());
+                    trojan.setOnlineCount(count.intValue());
                 });
                 map.put("data", trojans);
                 map.put("pageNo", trojanIPage.getCurrent());
@@ -1254,7 +1254,7 @@ public class AdminServiceImpl implements AdminService {
             // 查询用户当前套餐
             Order currentPlan = orderService.getCurrentPlan(order.getUserId());
             // 查询是否新用户
-            int buyCount = orderService.getBuyCountByUserId(order.getUserId());
+            long buyCount = orderService.getBuyCountByUserId(order.getUserId());
             Boolean isNewPayer = buyCount == 0;
             // 更新订单
             if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "余额", null, isNewPayer, null, new Date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
@@ -1282,7 +1282,7 @@ public class AdminServiceImpl implements AdminService {
                             userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                         } else {
                             // 首次返利,查该用户是否第一次充值
-                            int count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                            long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
                             if (count == 1) {
                                 // 首次
                                 userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));

@@ -18,7 +18,7 @@ import java.util.List;
 @Service
 public class OnlineServiceImpl extends ServiceImpl<OnlineMapper, Online> implements OnlineService {
     @Override
-    public Integer getOnlineCountByUserId(Integer userId) {
+    public Long getOnlineCountByUserId(Integer userId) {
         QueryWrapper<Online> onlineQueryWrapper = new QueryWrapper<>();
         onlineQueryWrapper
                 .eq("user_id", userId);
@@ -26,7 +26,7 @@ public class OnlineServiceImpl extends ServiceImpl<OnlineMapper, Online> impleme
     }
 
     @Override
-    public int getOnlineCountByTypeAndId(String type, Integer nodeId) {
+    public Long getOnlineCountByTypeAndId(String type, Integer nodeId) {
         QueryWrapper<Online> onlineQueryWrapper = new QueryWrapper<>();
         onlineQueryWrapper
                 .eq("type", type)

@@ -160,7 +160,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public int getBuyCountByUserId(Integer userId) {
+    public Long getBuyCountByUserId(Integer userId) {
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
         orderQueryWrapper.eq("user_id", userId).in("status", 1, 3);
         return this.count(orderQueryWrapper);
@@ -186,7 +186,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public Integer getUsedCountByPlanId(Integer planId) {
+    public Long getUsedCountByPlanId(Integer planId) {
         // 查询当前套餐有多少正在使用的人
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<Order>()
                 .eq("plan_id", planId)

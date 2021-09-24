@@ -184,11 +184,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // 累计资金,余额+佣金
             user.setFunds(user.getMoney());
             // 查当前在线ip
-            Integer onlineCount = onlineService.getOnlineCountByUserId(user.getId());
-            user.setOnlineCount(onlineCount);
+            Long onlineCount = onlineService.getOnlineCountByUserId(user.getId());
+            user.setOnlineCount(onlineCount.intValue());
             // 查询邀请了多少人
-            Integer commissionCount = this.count(new QueryWrapper<User>().eq("parent_id", user.getId()));
-            user.setCommissionCount(commissionCount);
+            Long commissionCount = this.count(new QueryWrapper<User>().eq("parent_id", user.getId()));
+            user.setCommissionCount(commissionCount.intValue());
             return user;
         } else {
             return null;
@@ -310,7 +310,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new CustomException(ResultCodeEnum.INVALID_INVITE_CODE_ERROR);
         }
 
-        int count = this.count();
+        long count = this.count();
         user.setEmail(regUser.getEmail());
         user.setPassword(passwordEncoder.encode(regUser.getPassword()));
         user.setMoney(BigDecimal.ZERO);
@@ -1424,7 +1424,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public Integer getRegisterCountByDateToNow(DateTime beginDate) {
+    public Long getRegisterCountByDateToNow(DateTime beginDate) {
         QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
         userQueryWrapper.gt("reg_date", beginDate);
         return this.count(userQueryWrapper);
