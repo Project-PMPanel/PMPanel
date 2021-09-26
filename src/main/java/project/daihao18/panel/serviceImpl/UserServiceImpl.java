@@ -897,7 +897,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 if (ObjectUtil.notEqual(user.getId(), order.getUserId())) {
                     return Result.setResult(ResultCodeEnum.UNAUTHORIZED_REQUEST_ERROR);
                 }
-                if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
+                // 查询订单状态,如果不为0,直接返回
+                if (!PayStatusEnum.WAIT_FOR_PAY.getStatus().equals(order.getStatus())) {
                     return Result.setResult(ResultCodeEnum.ORDER_PAID_ERROR);
                 }
             } else if ("package".equals(commonOrder.getType())) {

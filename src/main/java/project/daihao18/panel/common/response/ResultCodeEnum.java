@@ -31,7 +31,7 @@ public enum ResultCodeEnum {
     INVENTORY_SHORTAGE_ERROR(false, 5012, "库存不足", "Inventory shortage"),
     INSUFFICIENT_BALANCE_ERROR(false, 5013, "余额不足", "Insufficient balance"),
     PAYMENT_CREATE_ORDER_ERROR(false, 5014, "支付下单异常", "Create payment order error"),
-    ORDER_PAID_ERROR(false, 5015, "订单已支付", "The order has been paid"),
+    ORDER_PAID_ERROR(false, 5015, "订单支付异常,请检查订单状态", "Please check order status"),
     ;
     // 响应是否成功
     private Boolean success;
