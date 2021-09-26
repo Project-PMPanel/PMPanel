@@ -1216,7 +1216,6 @@ public class AdminServiceImpl implements AdminService {
                 user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
                 // 更新用户
                 if (userService.updateById(user)) {
-                    redisService.del("panel::user::" + order.getUserId());
                     // 更新订单为失效状态
                     order.setStatus(PayStatusEnum.INVALID.getStatus());
                     // 查询是否存在返利的关联订单
@@ -1226,10 +1225,22 @@ public class AdminServiceImpl implements AdminService {
                         User inviteUser = userService.getUserById(commission.getUserId(), true);
                         inviteUser.setMoney(inviteUser.getMoney().subtract(commission.getPrice()));
                         if (inviteUser.getMoney().compareTo(BigDecimal.ZERO) < 0) {
-                            return Result.error().message("邀请人余额不足,返利扣除失败").messageEnglish("Commission deduction failed");
+                            return Result.error().message("邀请人余额不足,返利扣除失败").messageEnglish("Commission deducted failed");
                         }
-                        userService.updateById(inviteUser);
+                        // 生成负数的返利记录
+                        if (userService.updateById(inviteUser)) {
+                            Funds funds = new Funds();
+                            funds.setUserId(commission.getUserId());
+                            funds.setRelatedOrderId(commission.getRelatedOrderId());
+                            funds.setPrice(BigDecimal.ZERO.subtract(commission.getPrice()));
+                            funds.setContent("佣金撤回(用户退款)");
+                            funds.setContentEnglish("Commission Cancel(user refund)");
+                            funds.setTime(new Date());
+                            fundsService.save(funds);
+                        }
+                        redisService.del("panel::user::" + commission.getUserId());
                     }
+                    redisService.del("panel::user::" + order.getUserId());
                     return orderService.updateById(order) ? Result.ok() : Result.error();
                 }
             } else {
