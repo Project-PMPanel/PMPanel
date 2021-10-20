@@ -247,6 +247,7 @@ CREATE TABLE `shadowsocks`  (
   `class` int(11) NULL DEFAULT NULL COMMENT '节点等级',
   `speedlimit` int(11) NULL DEFAULT NULL COMMENT '节点限速',
   `heartbeat` datetime NULL DEFAULT NULL COMMENT '心跳',
+  `sort` int(1) DEFAULT 0  NULL COMMENT '排序',
   `flag` int(11) NULL DEFAULT NULL COMMENT '启用停止标志位',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -283,6 +284,7 @@ CREATE TABLE `trojan`  (
   `speedlimit` int(11) NULL DEFAULT NULL COMMENT '节点限速',
   `sni` varchar(255) NULL COMMENT 'sni',
   `heartbeat` datetime NULL DEFAULT NULL COMMENT '心跳',
+  `sort` int(1) DEFAULT 0  NULL COMMENT '排序',
   `flag` int(11) NULL DEFAULT NULL COMMENT '启用停止标志位',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -391,6 +393,7 @@ CREATE TABLE `v2ray`  (
   `class` int NULL COMMENT '节点等级',
   `speedlimit` int NULL COMMENT '节点限速',
   `heartbeat` datetime NULL COMMENT '心跳',
+  `sort` int(1) DEFAULT 0  NULL COMMENT '排序',
   `flag` int NULL COMMENT '启用停止标志位',
   PRIMARY KEY (`id`)
 );

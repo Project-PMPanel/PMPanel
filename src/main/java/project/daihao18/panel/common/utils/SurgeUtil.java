@@ -19,8 +19,10 @@ import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class SurgeUtil {
@@ -74,7 +76,7 @@ public class SurgeUtil {
                 List<Ss> ssNodes = ssService.list(new QueryWrapper<Ss>().le("`class`", user.getClazz()).eq("flag", 1));
                 if (ObjectUtil.isNotEmpty(ssNodes)) {
                     // ss 节点不为空,遍历单端口信息
-                    for (Ss ssNode : ssNodes) {
+                    for (Ss ssNode : ssNodes.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList())) {
                         builder.append(ssNode.getName() + " = ss, " +
                                 ssNode.getSubServer() + ", " +
                                 ssNode.getSubPort() + ", " +
@@ -87,7 +89,7 @@ public class SurgeUtil {
                 List<V2ray> v2rayNodes = v2rayService.list(new QueryWrapper<V2ray>().le("`class`", user.getClazz()).eq("flag", 1));
                 if (ObjectUtil.isNotEmpty(v2rayNodes)) {
                     // 遍历v2ray节点
-                    for (V2ray v2ray : v2rayNodes) {
+                    for (V2ray v2ray : v2rayNodes.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList())) {
                         builder.append(
                                 v2ray.getName() + " = vmess, " + v2ray.getSubServer() + ", " + v2ray.getSubPort() + ", username = " + user.getPasswd()
                         );
@@ -105,7 +107,7 @@ public class SurgeUtil {
                 // 处理trojan
                 if (ObjectUtil.isNotEmpty(trojanNodes)) {
                     // 遍历v2ray节点
-                    for (Trojan trojan : trojanNodes) {
+                    for (Trojan trojan : trojanNodes.stream().sorted(Comparator.comparing(Trojan::getSort).thenComparing(Trojan::getId)).collect(Collectors.toList())) {
                         builder.append(
                                 trojan.getName() + " = trojan, " + trojan.getSubServer() + ", " + trojan.getSubPort() + ", password = " + user.getPasswd()
                         );

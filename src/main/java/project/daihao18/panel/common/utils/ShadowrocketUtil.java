@@ -15,8 +15,10 @@ import project.daihao18.panel.service.*;
 import javax.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class ShadowrocketUtil {
@@ -78,7 +80,7 @@ public class ShadowrocketUtil {
         // 处理ss
         if (ObjectUtil.isNotEmpty(ssNodes)) {
             // 遍历ss节点
-            for (Ss ss : ssNodes) {
+            for (Ss ss : ssNodes.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList())) {
                 ssSubs += getSsLink(ss, user.getPasswd());
             }
         }
@@ -87,7 +89,7 @@ public class ShadowrocketUtil {
         // 处理v2ray
         if (ObjectUtil.isNotEmpty(v2rayNodes)) {
             // 遍历v2ray节点
-            for (V2ray v2ray : v2rayNodes) {
+            for (V2ray v2ray : v2rayNodes.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList())) {
                 v2raySubs += getV2rayLink(v2ray, user.getPasswd());
             }
         }
@@ -96,7 +98,7 @@ public class ShadowrocketUtil {
         // 处理trojan
         if (ObjectUtil.isNotEmpty(trojanNodes)) {
             // 遍历v2ray节点
-            for (Trojan trojan : trojanNodes) {
+            for (Trojan trojan : trojanNodes.stream().sorted(Comparator.comparing(Trojan::getSort).thenComparing(Trojan::getId)).collect(Collectors.toList())) {
                 trojanSubs += getTrojanLink(trojan, user.getPasswd());
             }
         }

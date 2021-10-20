@@ -18,7 +18,9 @@ import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class ClashUtil {
@@ -62,7 +64,7 @@ public class ClashUtil {
         StringBuilder nodeName = new StringBuilder();
         if (ObjectUtil.isNotEmpty(ssNodes)) {
             // ss节点不为空
-            for (Ss ss : ssNodes) {
+            for (Ss ss : ssNodes.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList())) {
                 node.append(getSsLink(ss, user.getPasswd()));
                 nodeName.append("      - " + ss.getName() + "\n");
             }
@@ -71,7 +73,7 @@ public class ClashUtil {
         List<V2ray> v2rayNodes = v2rayService.list(new QueryWrapper<V2ray>().le("`class`", user.getClazz()).eq("flag", 1));
         if (ObjectUtil.isNotEmpty(v2rayNodes)) {
             // 遍历v2ray节点
-            for (V2ray v2ray : v2rayNodes) {
+            for (V2ray v2ray : v2rayNodes.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList())) {
                 node.append(getV2rayLink(v2ray, user.getPasswd()));
                 nodeName.append("      - " + v2ray.getName() + "\n");
             }
@@ -81,7 +83,7 @@ public class ClashUtil {
         // 处理trojan
         if (ObjectUtil.isNotEmpty(trojanNodes)) {
             // 遍历v2ray节点
-            for (Trojan trojan : trojanNodes) {
+            for (Trojan trojan : trojanNodes.stream().sorted(Comparator.comparing(Trojan::getSort).thenComparing(Trojan::getId)).collect(Collectors.toList())) {
                 node.append(getTrojanLink(trojan, user.getPasswd()));
                 nodeName.append("      - " + trojan.getName() + "\n");
             }

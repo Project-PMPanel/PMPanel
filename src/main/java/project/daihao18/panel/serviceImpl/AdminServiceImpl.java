@@ -417,40 +417,41 @@ public class AdminServiceImpl implements AdminService {
 
         Integer pageNo = Integer.parseInt(request.getParameter("pageNo"));
         Integer pageSize = Integer.parseInt(request.getParameter("pageSize"));
-        String sortField = request.getParameter("sortField");
-        String sortOrder = request.getParameter("sortOrder");
         switch (type) {
             case "ss":
-                IPage<Ss> ssIPage = ssService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                IPage<Ss> ssIPage = ssService.getPageNode(pageNo, pageSize);
                 List<Ss> sss = ssIPage.getRecords();
                 // 查询online
-                sss.stream().forEach(ss -> {
+                List<Ss> ssData = sss.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList());
+                ssData.forEach(ss -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("ss", ss.getId());
                     ss.setOnlineCount(count.intValue());
                 });
-                map.put("data", sss);
+                map.put("data", ssData);
                 map.put("pageNo", ssIPage.getCurrent());
                 map.put("totalCount", ssIPage.getTotal());
                 break;
             case "v2ray":
-                IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize);
                 List<V2ray> v2rays = v2rayIPage.getRecords();
-                v2rays.stream().forEach(v2ray -> {
+                List<V2ray> v2rayData = v2rays.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList());
+                v2rayData.forEach(v2ray -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("v2ray", v2ray.getId());
                     v2ray.setOnlineCount(count.intValue());
                 });
-                map.put("data", v2rays);
+                map.put("data", v2rayData);
                 map.put("pageNo", v2rayIPage.getCurrent());
                 map.put("totalCount", v2rayIPage.getTotal());
                 break;
             case "trojan":
-                IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize, sortField, sortOrder);
+                IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize);
                 List<Trojan> trojans = trojanIPage.getRecords();
-                trojans.stream().forEach(trojan -> {
+                List<Trojan> trojanData = trojans.stream().sorted(Comparator.comparing(Trojan::getSort).thenComparing(Trojan::getId)).collect(Collectors.toList());
+                trojanData.forEach(trojan -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("trojan", trojan.getId());
                     trojan.setOnlineCount(count.intValue());
                 });
-                map.put("data", trojans);
+                map.put("data", trojanData);
                 map.put("pageNo", trojanIPage.getCurrent());
                 map.put("totalCount", trojanIPage.getTotal());
                 break;

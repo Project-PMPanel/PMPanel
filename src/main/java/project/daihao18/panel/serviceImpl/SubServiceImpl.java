@@ -126,7 +126,7 @@ public class SubServiceImpl implements SubService {
             List<Map<String, Object>> servers = new ArrayList<>();
             content.put("version", "1");
             // 遍历ss节点
-            for (Ss ss : ssNodes) {
+            for (Ss ss : ssNodes.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList())) {
                 Map<String, Object> server = new HashMap<>();
                 server.put("id", UuidUtil.uuid3(ss.getName()));
                 server.put("remarks", ss.getName());
@@ -151,7 +151,7 @@ public class SubServiceImpl implements SubService {
         List<V2ray> v2rayNodes = v2rayService.list(new QueryWrapper<V2ray>().le("`class`", user.getClazz()).eq("flag", 1));
         String nodes = "";
         String prefix = "vmess://";
-        for (V2ray v2ray : v2rayNodes) {
+        for (V2ray v2ray : v2rayNodes.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList())) {
             Map<String, Object> content = new HashMap<>();
             content.put("v", "2");
             content.put("ps", v2ray.getName());

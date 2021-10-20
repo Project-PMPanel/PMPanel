@@ -41,6 +41,8 @@ public class Node implements Serializable {
 
     private Date heartbeat;
 
+    private Integer sort;
+
     private boolean flag;
 
     @TableField(exist = false)

@@ -3,7 +3,6 @@ package project.daihao18.panel.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import project.daihao18.panel.entity.Ss;
-import project.daihao18.panel.entity.V2ray;
 
 /**
  * @InterfaceName: SsService
