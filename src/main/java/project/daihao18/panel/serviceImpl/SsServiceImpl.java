@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 import project.daihao18.panel.entity.Ss;
-import project.daihao18.panel.entity.V2ray;
 import project.daihao18.panel.mapper.SsMapper;
 import project.daihao18.panel.service.SsService;
 
@@ -23,6 +22,7 @@ public class SsServiceImpl extends ServiceImpl<SsMapper, Ss> implements SsServic
     public IPage<Ss> getPageNode(Integer pageNo, Integer pageSize, String... sortParam) {
         IPage<Ss> page = new Page<>(pageNo, pageSize);
         QueryWrapper<Ss> nodeQueryWrapper = new QueryWrapper<>();
+        nodeQueryWrapper.orderByAsc("sort").orderByAsc("id");
         if (ObjectUtil.isNotEmpty(sortParam)) {
             if ("ascend".equals(sortParam[1])) {
                 nodeQueryWrapper.orderByAsc(sortParam[0]);

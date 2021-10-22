@@ -1,7 +1,6 @@
 package project.daihao18.panel.serviceImpl;
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
@@ -39,7 +38,6 @@ import project.daihao18.panel.service.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
@@ -422,36 +420,33 @@ public class AdminServiceImpl implements AdminService {
                 IPage<Ss> ssIPage = ssService.getPageNode(pageNo, pageSize);
                 List<Ss> sss = ssIPage.getRecords();
                 // 查询online
-                List<Ss> ssData = sss.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList());
-                ssData.forEach(ss -> {
+                sss.forEach(ss -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("ss", ss.getId());
                     ss.setOnlineCount(count.intValue());
                 });
-                map.put("data", ssData);
+                map.put("data", sss);
                 map.put("pageNo", ssIPage.getCurrent());
                 map.put("totalCount", ssIPage.getTotal());
                 break;
             case "v2ray":
                 IPage<V2ray> v2rayIPage = v2rayService.getPageNode(pageNo, pageSize);
                 List<V2ray> v2rays = v2rayIPage.getRecords();
-                List<V2ray> v2rayData = v2rays.stream().sorted(Comparator.comparing(V2ray::getSort).thenComparing(V2ray::getId)).collect(Collectors.toList());
-                v2rayData.forEach(v2ray -> {
+                v2rays.forEach(v2ray -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("v2ray", v2ray.getId());
                     v2ray.setOnlineCount(count.intValue());
                 });
-                map.put("data", v2rayData);
+                map.put("data", v2rays);
                 map.put("pageNo", v2rayIPage.getCurrent());
                 map.put("totalCount", v2rayIPage.getTotal());
                 break;
             case "trojan":
                 IPage<Trojan> trojanIPage = trojanService.getPageNode(pageNo, pageSize);
                 List<Trojan> trojans = trojanIPage.getRecords();
-                List<Trojan> trojanData = trojans.stream().sorted(Comparator.comparing(Trojan::getSort).thenComparing(Trojan::getId)).collect(Collectors.toList());
-                trojanData.forEach(trojan -> {
+                trojans.forEach(trojan -> {
                     Long count = onlineService.getOnlineCountByTypeAndId("trojan", trojan.getId());
                     trojan.setOnlineCount(count.intValue());
                 });
-                map.put("data", trojanData);
+                map.put("data", trojans);
                 map.put("pageNo", trojanIPage.getCurrent());
                 map.put("totalCount", trojanIPage.getTotal());
                 break;

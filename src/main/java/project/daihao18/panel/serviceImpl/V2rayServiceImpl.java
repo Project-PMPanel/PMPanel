@@ -22,6 +22,7 @@ public class V2rayServiceImpl extends ServiceImpl<V2rayMapper, V2ray> implements
     public IPage<V2ray> getPageNode(Integer pageNo, Integer pageSize, String... sortParam) {
         IPage<V2ray> page = new Page<>(pageNo, pageSize);
         QueryWrapper<V2ray> nodeQueryWrapper = new QueryWrapper<>();
+        nodeQueryWrapper.orderByAsc("sort").orderByAsc("id");
         if (ObjectUtil.isNotEmpty(sortParam)) {
             if ("ascend".equals(sortParam[1])) {
                 nodeQueryWrapper.orderByAsc(sortParam[0]);

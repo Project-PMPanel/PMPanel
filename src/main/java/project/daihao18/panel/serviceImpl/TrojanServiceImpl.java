@@ -22,6 +22,7 @@ public class TrojanServiceImpl extends ServiceImpl<TrojanMapper, Trojan> impleme
     public IPage<Trojan> getPageNode(Integer pageNo, Integer pageSize, String... sortParam) {
         IPage<Trojan> page = new Page<>(pageNo, pageSize);
         QueryWrapper<Trojan> nodeQueryWrapper = new QueryWrapper<>();
+        nodeQueryWrapper.orderByAsc("sort").orderByAsc("id");
         if (ObjectUtil.isNotEmpty(sortParam)) {
             if ("ascend".equals(sortParam[1])) {
                 nodeQueryWrapper.orderByAsc(sortParam[0]);
