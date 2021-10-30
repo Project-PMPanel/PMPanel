@@ -9,13 +9,6 @@ The Proxy Manage Panel is an open source web application which can manage shadow
 
 ---
 
-### [Preview Site](https://yyds.me)
-Account: pmpanel@yyds.me
-
-Password: 123456
-
----
-
 ### Contact
 
 [TG Channel](https://t.me/PMPanel)
