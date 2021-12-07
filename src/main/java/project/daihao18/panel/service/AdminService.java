@@ -18,6 +18,8 @@ import java.util.Map;
 public interface AdminService {
     Result getDashboardInfo();
 
+    Result getIncomeInfo();
+
     Result cleanRedisCache();
 
     Result notifyRenew();

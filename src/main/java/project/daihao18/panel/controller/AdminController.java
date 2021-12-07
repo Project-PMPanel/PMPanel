@@ -36,6 +36,11 @@ public class AdminController {
         return adminService.getDashboardInfo();
     }
 
+    @GetMapping("/income")
+    public Result getIncomeInfo() {
+        return adminService.getIncomeInfo();
+    }
+
     @DeleteMapping("/cache")
     public Result cleanRedisCache() {
         return adminService.cleanRedisCache();

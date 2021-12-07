@@ -31,8 +31,8 @@ import project.daihao18.panel.common.schedule.SchedulingRunnable;
 import project.daihao18.panel.common.utils.EmailUtil;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.common.utils.UuidUtil;
-import project.daihao18.panel.entity.*;
 import project.daihao18.panel.entity.Package;
+import project.daihao18.panel.entity.*;
 import project.daihao18.panel.service.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -149,6 +149,12 @@ public class AdminServiceImpl implements AdminService {
         map.put("todayIncome", orderService.getTodayIncome().add(packageService.getTodayIncome()));
         map.put("todayOrderCount", orderService.getTodayOrderCount());
         map.put("monthPaidUserCount", userService.getMonthPaidUserCount());
+        return Result.ok().data(map);
+    }
+
+    @Override
+    public Result getIncomeInfo() {
+        Map<String, Object> map = new HashMap<>();
         // 获取收入详情
         List<Map<String, Object>> monthList = new ArrayList<>();
         LocalDateTime timeNow = LocalDateTime.now();
@@ -163,9 +169,7 @@ public class AdminServiceImpl implements AdminService {
                     .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
                     .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
                     .ne("pay_type", "余额")
-                    .or()
-                    .eq("status", 1)
-                    .eq("status", 3);
+                    .eq("status", 1);
             List<Order> orders = orderService.list(orderQueryWrapper);
             // 查流量包收入
             QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
@@ -173,9 +177,7 @@ public class AdminServiceImpl implements AdminService {
                     .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
                     .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
                     .ne("pay_type", "余额")
-                    .or()
-                    .eq("status", 1)
-                    .eq("status", 3);
+                    .eq("status", 1);
             List<Package> packages = packageService.list(packageQueryWrapper);
             // 该月份套餐订阅收入
             BigDecimal thisMonthOrderIncome = BigDecimal.ZERO;
