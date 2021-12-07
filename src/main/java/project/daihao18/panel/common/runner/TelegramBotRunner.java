@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.MessageEntity;
@@ -26,8 +27,6 @@ import project.daihao18.panel.service.UserService;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Component
@@ -67,77 +66,55 @@ public class TelegramBotRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Lock lock = new ReentrantLock();
-                lock.lock();
-                try {
-                    if (enableTGBot) {
-                        runBot();
-                    }
-                } catch (Exception e) {
-                    log.error(e.getMessage() + ", restarting bot...");
-                    if (enableTGBot) {
-                        runBot();
-                    }
-                } finally {
-                    lock.unlock();
-                }
-            }
-        }).start();
-    }
-
-    public void runBot() {
-        log.info("telegram bot start");
-        int m = 0;
-        while (true) {
-            List<Update> updates = bot.execute(new GetUpdates().limit(100).offset(m).timeout(0)).updates();
-            if (ObjectUtil.isNotEmpty(updates)) {
-                for (Update update : updates) {
-                    log.debug(update.toString());
-                    m = update.updateId() + 1;
-                    String text = "";
-                    Message message = update.message();
-                    if (ObjectUtil.isNotEmpty(message)) {
-                        log.debug(message.toString());
-                        // 处理私聊bot command消息
-                        if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.Private)) {
-                            if (message.text().startsWith("/start")) {
-                                handleStart(message);
-                            } else if (message.text().startsWith("/site")) {
-                                handleSite(message);
-                            } else if (message.text().startsWith("/info")) {
-                                handleInfo(message);
-                            } else if (message.text().startsWith("/ticket")) {
-                                handleTicket(message);
-                            } else if (message.text().startsWith("/checkin")) {
-                                if (enableCheckin) {
-                                    handleCheckIn(message);
+        if (enableTGBot) {
+            log.info("telegram bot start");
+            bot.setUpdatesListener(updates -> {
+                // ... process updates
+                if (ObjectUtil.isNotEmpty(updates)) {
+                    for (Update update : updates) {
+                        log.debug(update.toString());
+                        String text = "";
+                        Message message = update.message();
+                        if (ObjectUtil.isNotEmpty(message)) {
+                            log.debug(message.toString());
+                            // 处理私聊bot command消息
+                            if (ObjectUtil.isNotEmpty(message.entities()) && message.entities()[0].type().equals(MessageEntity.Type.bot_command) && message.chat().type().equals(Chat.Type.Private)) {
+                                if (message.text().startsWith("/start")) {
+                                    handleStart(message);
+                                } else if (message.text().startsWith("/site")) {
+                                    handleSite(message);
+                                } else if (message.text().startsWith("/info")) {
+                                    handleInfo(message);
+                                } else if (message.text().startsWith("/ticket")) {
+                                    handleTicket(message);
+                                } else if (message.text().startsWith("/checkin")) {
+                                    if (enableCheckin) {
+                                        handleCheckIn(message);
+                                    }
+                                } else if (message.text().startsWith("/bc")) {
+                                    handleBroadCast(message);
                                 }
-                            } else if (message.text().startsWith("/bc")) {
-                                handleBroadCast(message);
-                            }
-                        // 绑定tg后入群,否则直接拉黑
-                        } else if (message.chat().type().equals(Chat.Type.group) || message.chat().type().equals(Chat.Type.supergroup)) {
-                            // 获取chat id
-                            if (ObjectUtil.isNotEmpty(message.text()) && message.text().startsWith("/chatid")) {
-                                bot.execute(new SendMessage(message.chat().id(), message.chat().id().toString()));
-                            }
-                            if (ObjectUtil.isNotEmpty(message.newChatMembers())) {
-                                List<com.pengrad.telegrambot.model.User> tgUsers = Arrays.asList(message.newChatMembers());
-                                if (ObjectUtil.isNotEmpty(tgUsers)) {
-                                    for (com.pengrad.telegrambot.model.User user : tgUsers) {
-                                        User existUser = userService.getUserByTgId(user.id());
-                                        if (ObjectUtil.isEmpty(existUser)) {
-                                            // 踢出群
-                                            bot.execute(new KickChatMember(message.chat().id(), user.id()));
-                                            // 从黑名单解封
-                                            bot.execute(new UnbanChatMember(message.chat().id(), user.id()));
-                                        }
-                                        // revokeInviteLink
-                                        if (ObjectUtil.isNotEmpty(message.chat().id()) && message.chat().id() < 0 && ObjectUtil.isNotEmpty(inviteLink)) {
-                                            bot.execute(new RevokeChatInviteLink(message.chat().id(), inviteLink));
+                                // 绑定tg后入群,否则直接拉黑
+                            } else if (message.chat().type().equals(Chat.Type.group) || message.chat().type().equals(Chat.Type.supergroup)) {
+                                // 获取chat id
+                                if (ObjectUtil.isNotEmpty(message.text()) && message.text().startsWith("/chatid")) {
+                                    bot.execute(new SendMessage(message.chat().id(), message.chat().id().toString()));
+                                }
+                                if (ObjectUtil.isNotEmpty(message.newChatMembers())) {
+                                    List<com.pengrad.telegrambot.model.User> tgUsers = Arrays.asList(message.newChatMembers());
+                                    if (ObjectUtil.isNotEmpty(tgUsers)) {
+                                        for (com.pengrad.telegrambot.model.User user : tgUsers) {
+                                            User existUser = userService.getUserByTgId(user.id());
+                                            if (ObjectUtil.isEmpty(existUser)) {
+                                                // 踢出群
+                                                bot.execute(new KickChatMember(message.chat().id(), user.id()));
+                                                // 从黑名单解封
+                                                bot.execute(new UnbanChatMember(message.chat().id(), user.id()));
+                                            }
+                                            // revokeInviteLink
+                                            if (ObjectUtil.isNotEmpty(message.chat().id()) && message.chat().id() < 0 && ObjectUtil.isNotEmpty(inviteLink)) {
+                                                bot.execute(new RevokeChatInviteLink(message.chat().id(), inviteLink));
+                                            }
                                         }
                                     }
                                 }
@@ -145,7 +122,9 @@ public class TelegramBotRunner implements ApplicationRunner {
                         }
                     }
                 }
-            }
+                // return id of last processed update or confirm them all
+                return UpdatesListener.CONFIRMED_UPDATES_ALL;
+            });
         }
     }
 

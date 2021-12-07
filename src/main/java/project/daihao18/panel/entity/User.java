@@ -149,7 +149,7 @@ public class User implements Serializable, UserDetails {
     /**
      * tg的ID
      */
-    private Integer tgId;
+    private Long tgId;
 
     /**
      * 签到时间

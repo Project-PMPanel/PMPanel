@@ -118,7 +118,7 @@ public interface UserService extends IService<User> {
 
     User getUserByPasswd(String uuid);
 
-    User getUserByTgId(Integer tgId);
+    User getUserByTgId(Long tgId);
 
     List<User> getAdmins();
 

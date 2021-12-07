@@ -1535,7 +1535,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public User getUserByTgId(Integer tgId) {
+    public User getUserByTgId(Long tgId) {
         QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
         userQueryWrapper
                 .eq("tg_id", tgId);
