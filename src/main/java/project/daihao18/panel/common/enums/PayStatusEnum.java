@@ -16,6 +16,7 @@ public enum PayStatusEnum {
     SUCCESS(1),
     CANCELED(2),
     INVALID(3),
+    REFUND(4),
     ;
 
     private Integer status;

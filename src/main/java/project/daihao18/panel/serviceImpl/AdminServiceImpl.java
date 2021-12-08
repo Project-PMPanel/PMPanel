@@ -166,18 +166,16 @@ public class AdminServiceImpl implements AdminService {
             // 查订单收入
             QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
             orderQueryWrapper
-                    .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
-                    .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .between("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1), monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
                     .ne("pay_type", "余额")
-                    .eq("status", 1);
+                    .and(wrapper -> wrapper.eq("status", 1).or().eq("status", 3));
             List<Order> orders = orderService.list(orderQueryWrapper);
             // 查流量包收入
             QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
             packageQueryWrapper
-                    .gt("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1))
-                    .le("pay_time", monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
+                    .between("pay_time", monthBeginTimeStart.minusMonths(timeNow.getMonthValue() - i - 1), monthEndTimeEnd.minusMonths(timeNow.getMonthValue() - i - 1))
                     .ne("pay_type", "余额")
-                    .eq("status", 1);
+                    .and(wrapper -> wrapper.eq("status", 1).or().eq("status", 3));
             List<Package> packages = packageService.list(packageQueryWrapper);
             // 该月份套餐订阅收入
             BigDecimal thisMonthOrderIncome = BigDecimal.ZERO;
@@ -1214,8 +1212,8 @@ public class AdminServiceImpl implements AdminService {
                 user.setExpireIn(DateUtil.date(Long.parseLong(order.getUserDetailsMap().get("expireIn").toString())));
                 // 更新用户
                 if (userService.updateById(user)) {
-                    // 更新订单为失效状态
-                    order.setStatus(PayStatusEnum.INVALID.getStatus());
+                    // 更新订单为退款状态
+                    order.setStatus(PayStatusEnum.REFUND.getStatus());
                     // 查询是否存在返利的关联订单
                     Funds commission = fundsService.getOne(new QueryWrapper<Funds>().eq("related_order_id", order.getOrderId()).eq("content", "佣金").eq("content_english", "Commission"));
                     if (ObjectUtil.isNotEmpty(commission)) {
