@@ -45,7 +45,10 @@ public class SubController {
             case "surge4":
                 suffix = "conf";
                 break;
-            case "ss":
+            case "sip002":
+                suffix = "txt";
+                break;
+            case "sip008":
                 suffix = "json";
                 break;
         }

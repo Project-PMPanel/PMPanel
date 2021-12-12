@@ -89,8 +89,10 @@ public class SubServiceImpl implements SubService {
                 return ClashUtil.getSub(user);
             case "surge4":
                 return SurgeUtil.getSub(user);
-            case "ss":
-                return getSSOriginal(user);
+            case "sip002":
+                return getSIP002Sub(user);
+            case "sip008":
+                return getSIP008Sub(user);
             case "v2ray":
                 return getV2rayOriginal(user);
         }
@@ -98,24 +100,65 @@ public class SubServiceImpl implements SubService {
     }
 
     // ##################################################
-    // SIP008
-    private String getSSOriginal(User user) {
+    // SIP002
+    private String getSIP002Sub(User user) {
         String subs = "";
         String ssSubs = "";
 
         // 用户已过期 或者 流量已用完
         if (user.getExpireIn().before(new Date()) || user.getU() + user.getD() > user.getTransferEnable()) {
+            String sub = "ss://" +
+                    Base64.getEncoder().encodeToString("aes-256-gcm:123456".getBytes()) +
+                    "@" +
+                    "192.168.1.1:8080" +
+                    "#已过期或流量已用完\n";
+            ssSubs += sub;
+            subs += ssSubs;
+            return Base64.getEncoder().encodeToString(subs.getBytes());
+        }
+
+        // ss
+        List<Ss> ssNodes = ssService.list(new QueryWrapper<Ss>().le("`class`", user.getClazz()).eq("flag", 1));
+        // 处理ss
+        if (ObjectUtil.isNotEmpty(ssNodes)) {
+            // 遍历ss节点
+            for (Ss ss : ssNodes.stream().sorted(Comparator.comparing(Ss::getSort).thenComparing(Ss::getId)).collect(Collectors.toList())) {
+                String sub = "ss://" +
+                        Base64.getEncoder().encodeToString((ss.getMethod() + ":" + user.getPasswd() + "@" + ss.getSubServer() + ":" + ss.getSubPort()).getBytes()) +
+                        "#" + ss.getName() + "\n";
+                ssSubs += sub;
+            }
+        }
+        subs += ssSubs;
+        return Base64.getEncoder().encodeToString(subs.getBytes());
+    }
+
+    // ##################################################
+    // SIP008
+    private String getSIP008Sub(User user) {
+        String subs = "";
+        String ssSubs = "";
+
+        // 用户已过期 或者 流量已用完
+        if (user.getExpireIn().before(new Date()) || user.getU() + user.getD() > user.getTransferEnable()) {
+            Map<String, Object> content = new HashMap<>();
+            List<Map<String, Object>> servers = new ArrayList<>();
+            content.put("version", "1");
+
             Map<String, Object> server = new HashMap<>();
             server.put("id", UuidUtil.uuid3("已过期或流量已用完"));
             server.put("remarks", "已过期或流量已用完");
             server.put("server", "192.168.1.1");
-            server.put("server_port", "aes-256-gcm");
+            server.put("server_port", "8080");
             server.put("password", user.getPasswd());
             server.put("method","aes-256-gcm");
-
-            ssSubs += server;
+            // server.put("plugin", "");
+            // server.put("plugin_opts", new HashMap<>());
+            servers.add(server);
+            content.put("servers", servers);
+            ssSubs = JSONUtil.toJsonStr(content);
             subs += ssSubs;
-            return Base64.getEncoder().encodeToString(subs.getBytes());
+            return subs;
         }
 
         // ss
@@ -134,7 +177,8 @@ public class SubServiceImpl implements SubService {
                 server.put("server_port", ss.getSubPort());
                 server.put("password", user.getPasswd());
                 server.put("method",ss.getMethod());
-
+                // server.put("plugin", "");
+                // server.put("plugin_opts", new HashMap<>());
                 servers.add(server);
             }
             content.put("servers", servers);
