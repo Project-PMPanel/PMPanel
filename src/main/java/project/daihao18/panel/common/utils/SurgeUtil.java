@@ -115,9 +115,11 @@ public class SurgeUtil {
                     }
                 }
                 // 删除nodeName最后的,和空格
-                nodeName.deleteCharAt(nodeName.length() - 1);
-                nodeName.deleteCharAt(nodeName.length() - 1);
-                nodeName.append("\n");
+                if (nodeName.length() > 1) {
+                    nodeName.deleteCharAt(nodeName.length() - 1);
+                    nodeName.deleteCharAt(nodeName.length() - 1);
+                    nodeName.append("\n");
+                }
                 continue;
             } else if (tmpContent.contains("{node}")) {
                 builder.append(tmpContent);
