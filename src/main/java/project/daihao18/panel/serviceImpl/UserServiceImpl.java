@@ -242,7 +242,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     .data("emailList", emailList)
                     .data("panelSiteTitle", siteName)
                     .data("panelMailRegisterEnable", panelMailRegisterEnable)
-                    .data("loginWith",loginWith);
+                    .data("loginWith", loginWith);
         }
     }
 
@@ -1242,9 +1242,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional
-    public Result saveTicket(Integer userId, Ticket ticket, String type) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
+    public synchronized Result saveTicket(Integer userId, Ticket ticket, String type) {
         ticket.setUserId(userId);
         ticket.setTime(new Date());
         if ("reply".equals(type)) {
@@ -1276,12 +1274,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
                 }
             }
-            lock.unlock();
             return Result.ok().message("提交成功").messageEnglish("Submit successfully");
-        } else {
-            lock.unlock();
-            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
+        return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
     @Override
@@ -1475,9 +1470,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 map.put("day", DateUtil.dayOfMonth(traffic.getDate()) + "号");
                 map.put("traffic", "上传");
                 map.put("value", FlowSizeConverterUtil.BytesToMb(traffic.getU()));
-                map2.put("day",DateUtil.dayOfMonth(traffic.getDate()) + "号");
+                map2.put("day", DateUtil.dayOfMonth(traffic.getDate()) + "号");
                 map2.put("traffic", "下载");
-                map2.put("value",FlowSizeConverterUtil.BytesToMb(traffic.getD()));
+                map2.put("value", FlowSizeConverterUtil.BytesToMb(traffic.getD()));
                 monthList.add(map);
                 monthList.add(map2);
             }
@@ -1489,9 +1484,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 map.put("day", i + "号");
                 map.put("traffic", "上传");
                 map.put("value", 0);
-                map2.put("day",i + "号");
+                map2.put("day", i + "号");
                 map2.put("traffic", "下载");
-                map2.put("value",0);
+                map2.put("value", 0);
                 monthList.add(map);
                 monthList.add(map2);
             }
@@ -1504,9 +1499,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             map.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map.put("traffic", "上传");
             map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("u"))))));
-            map2.put("day",LocalDateTimeUtil.now().getDayOfMonth() + "号");
+            map2.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map2.put("traffic", "下载");
-            map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("d"))))));
+            map2.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("d"))))));
             monthList.add(map);
             monthList.add(map2);
         }
@@ -1517,9 +1512,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             map.put("day", i + "号");
             map.put("traffic", "上传");
             map.put("value", 0);
-            map2.put("day",i + "号");
+            map2.put("day", i + "号");
             map2.put("traffic", "下载");
-            map2.put("value",0);
+            map2.put("value", 0);
             monthList.add(map);
             monthList.add(map2);
         }
