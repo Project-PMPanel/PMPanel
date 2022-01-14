@@ -36,11 +36,7 @@ public class Order implements Serializable {
 
     private BigDecimal price;
 
-    private Boolean isMixedPay;
-
-    private BigDecimal mixedMoneyAmount;
-
-    private BigDecimal mixedPayAmount;
+    private BigDecimal payAmount;
 
     private String payType;
 

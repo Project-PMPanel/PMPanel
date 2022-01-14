@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.common.utils.FlowSizeConverterUtil;
 import project.daihao18.panel.entity.CommonOrder;
-import project.daihao18.panel.entity.Order;
 import project.daihao18.panel.service.ConfigService;
 import project.daihao18.panel.service.OrderService;
 import project.daihao18.panel.service.PackageService;
@@ -125,7 +124,7 @@ public class Alipay {
      * @return
      */
     @Transactional
-    public Map<String, Object> create(CommonOrder order, Boolean isMixedPay) throws AlipayApiException {
+    public Map<String, Object> create(CommonOrder order) throws AlipayApiException {
         // 根据config配置的下单方式来下单
         // 获取支付宝配置
         Map<String, Object> alipayConfig = JSONUtil.toBean(configService.getValueByName("alipayConfig"), Map.class);
@@ -135,11 +134,14 @@ public class Alipay {
         // 设置通知的domain(本站域名)
         order.setDomain(alipayConfig.get("domain").toString());
         // 获取订单标题
-        String subject = "";
+        String subject = "Order#";
+        // 大写开头为混合支付
         if ("plan".equals(order.getType())) {
-            subject = subject.concat(orderService.getOrderByOrderId(order.getId()).getPlanDetailsMap().get("name").toString());
+            subject = subject.concat(order.getId());
+            order.setId("p_".concat(order.getId()));
         } else {
             subject = subject.concat(FlowSizeConverterUtil.BytesToGb(packageService.getById(order.getId()).getTransferEnable()) + " GB");
+            order.setId("t_".concat(order.getId()));
         }
         // 通过请求的是pc 还是 h5来自动选择
         Map<String, Object> result = new HashMap<>();
@@ -147,12 +149,12 @@ public class Alipay {
         if ("pc".equals(order.getPlatform())) {
             if (web) {
                 // 优先选择web
-                result = this.createByWEB(order, subject, isMixedPay);
+                result = this.createByWEB(order, subject);
                 result.put("type", "link");
                 return result;
             } else if (f2f) {
                 // 没有web选择f2f
-                result = this.createByF2F(order, subject, isMixedPay);
+                result = this.createByF2F(order, subject);
                 result.put("type", "qr");
                 return result;
             } else {
@@ -162,12 +164,12 @@ public class Alipay {
         } else if ("h5".equals(order.getPlatform())) {
             if (wap) {
                 // 优先选择wap
-                result = this.createByWAP(order, subject, isMixedPay);
+                result = this.createByWAP(order, subject);
                 result.put("type", "link");
                 return result;
             } else if (f2f) {
                 // 没有wap选择f2f
-                result = this.createByF2F(order, subject, isMixedPay);
+                result = this.createByF2F(order, subject);
                 result.put("type", "link");
                 return result;
             } else {
@@ -185,15 +187,14 @@ public class Alipay {
      * @param order
      * @return
      */
-    protected Map<String, Object> createByWEB(CommonOrder order, String subject, Boolean isMixedPay) throws AlipayApiException {
+    protected Map<String, Object> createByWEB(CommonOrder order, String subject) throws AlipayApiException {
         AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
         AlipayTradePagePayModel model = new AlipayTradePagePayModel();
         model.setSubject(subject);
         model.setProductCode("FAST_INSTANT_TRADE_PAY");
-        String isMixed = isMixedPay ? "1" : "0";
-        model.setOutTradeNo(order.getId() + "_" + isMixed);
+        model.setOutTradeNo(order.getId());
         model.setTimeoutExpress("5m");
-        model.setTotalAmount(order.getMixedPayAmount().toString());
+        model.setTotalAmount(order.getPayAmount().toString());
         model.setDisablePayChannels("credit_group");
         request.setBizModel(model);
         request.setNotifyUrl(order.getDomain() + ALIPAY_NOTIFY_URL);
@@ -211,15 +212,14 @@ public class Alipay {
      * @param order
      * @return
      */
-    protected Map<String, Object> createByWAP(CommonOrder order, String subject, Boolean isMixedPay) throws AlipayApiException {
+    protected Map<String, Object> createByWAP(CommonOrder order, String subject) throws AlipayApiException {
         AlipayTradeWapPayRequest request = new AlipayTradeWapPayRequest();
         AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
         model.setSubject(subject);
         model.setProductCode("QUICK_WAP_WAY");
-        String isMixed = isMixedPay ? "1" : "0";
-        model.setOutTradeNo(order.getId() + "_" + isMixed);
+        model.setOutTradeNo(order.getId());
         model.setTimeoutExpress("5m");
-        model.setTotalAmount(order.getMixedPayAmount().toString());
+        model.setTotalAmount(order.getPayAmount().toString());
         model.setDisablePayChannels("credit_group");
         request.setBizModel(model);
         request.setNotifyUrl(order.getDomain() + ALIPAY_NOTIFY_URL);
@@ -237,15 +237,13 @@ public class Alipay {
      * @param order
      * @return
      */
-    protected Map<String, Object> createByF2F(CommonOrder order, String subject, Boolean isMixedPay) throws AlipayApiException {
+    protected Map<String, Object> createByF2F(CommonOrder order, String subject) throws AlipayApiException {
         AlipayTradePrecreateRequest request = new AlipayTradePrecreateRequest();
         AlipayTradePrecreateModel model = new AlipayTradePrecreateModel();
         model.setSubject(subject);
-        String isMixed = isMixedPay ? "1" : "0";
-        model.setOutTradeNo(order.getId() + "_" + isMixed);
-        // model.setOutTradeNo(order.getId() + "_" + isMixed + "_" + RandomUtil.randomNumbers(4));
+        model.setOutTradeNo(order.getId());
         model.setTimeoutExpress("5m");
-        model.setTotalAmount(order.getMixedPayAmount().toString());
+        model.setTotalAmount(order.getPayAmount().toString());
         model.setDisablePayChannels("credit_group");
         request.setBizModel(model);
         request.setNotifyUrl(order.getDomain() + ALIPAY_NOTIFY_URL);
@@ -272,31 +270,23 @@ public class Alipay {
     public AlipayTradeQueryResponse query(CommonOrder order) throws AlipayApiException {
         AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();
         AlipayTradeQueryModel model = new AlipayTradeQueryModel();
-        model.setOutTradeNo(order.getId() + "_0");
+
+        if ("plan".equals(order.getType())) {
+            order.setId("p_".concat(order.getId()));
+        } else {
+            order.setId("t_".concat(order.getId()));
+        }
+
+        model.setOutTradeNo(order.getId());
         request.setBizModel(model);
         // 设置alipayClient
-        // 查2次
         AlipayTradeQueryResponse execute = null;
         if (isCertMode) {
             execute = alipayClient.certificateExecute(request);
         } else {
             execute = alipayClient.execute(request);
         }
-        if (!"40004".equals(execute.getCode())) {
-            return execute;
-        } else {
-            model.setOutTradeNo(order.getId() + "_1");
-            request.setBizModel(model);
-            if (isCertMode) {
-                execute = alipayClient.certificateExecute(request);
-            } else {
-                execute = alipayClient.execute(request);
-            }
-            if (!"40004".equals(execute.getCode())) {
-                return execute;
-            }
-        }
-        return null;
+        return execute;
     }
 
     /**
@@ -307,38 +297,37 @@ public class Alipay {
     public AlipayTradeCloseResponse close(CommonOrder order) throws AlipayApiException {
         AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();
         AlipayTradeCloseModel model = new AlipayTradeCloseModel();
-        model.setOutTradeNo(order.getId() + "_0");
+
+        if ("plan".equals(order.getType())) {
+            order.setId("p_".concat(order.getId()));
+        } else {
+            order.setId("t_".concat(order.getId()));
+        }
+
+        model.setOutTradeNo(order.getId());
         request.setBizModel(model);
         // 设置alipayClient
-        // 关闭2次
         AlipayTradeCloseResponse execute = null;
         if (isCertMode) {
             execute = alipayClient.certificateExecute(request);
         } else {
             execute = alipayClient.execute(request);
         }
-        if (!"40004".equals(execute.getCode())) {
-            return execute;
-        } else {
-            model.setOutTradeNo(order.getId() + "_1");
-            request.setBizModel(model);
-            if (isCertMode) {
-                execute = alipayClient.certificateExecute(request);
-            } else {
-                execute = alipayClient.execute(request);
-            }
-            if (!"40004".equals(execute.getCode())) {
-                return execute;
-            }
-        }
-        return null;
+        return execute;
     }
 
     public AlipayTradeRefundResponse refund(CommonOrder order) throws AlipayApiException {
         AlipayTradeRefundRequest request = new AlipayTradeRefundRequest();
         AlipayTradeRefundModel model = new AlipayTradeRefundModel();
-        model.setOutTradeNo(order.getId() + "_0");
-        model.setRefundAmount(order.getMixedPayAmount().toString());
+
+        if ("plan".equals(order.getType())) {
+            order.setId("p_".concat(order.getId()));
+        } else {
+            order.setId("t_".concat(order.getId()));
+        }
+
+        model.setOutTradeNo(order.getId());
+        model.setRefundAmount(order.getPayAmount().toString());
         model.setOutRequestNo(order.getId() + "_" + RandomUtil.randomInt(100, 1000));
         request.setBizModel(model);
         AlipayTradeRefundResponse execute = null;
@@ -347,22 +336,6 @@ public class Alipay {
         } else {
             execute = alipayClient.execute(request);
         }
-        if (!"40004".equals(execute.getCode())) {
-            return execute;
-        } else {
-            model.setOutTradeNo(order.getId() + "_1");
-            model.setRefundAmount(order.getMixedPayAmount().toString());
-            model.setOutRequestNo(order.getId() + "_" + RandomUtil.randomInt(100, 1000));
-            request.setBizModel(model);
-            if (isCertMode) {
-                execute = alipayClient.certificateExecute(request);
-            } else {
-                execute = alipayClient.execute(request);
-            }
-            if (!"40004".equals(execute.getCode())) {
-                return execute;
-            }
-        }
-        return null;
+        return execute;
     }
 }

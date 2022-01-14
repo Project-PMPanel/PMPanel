@@ -86,32 +86,26 @@ public class NotifyController {
             }
             // 这里加上商户的业务逻辑程序代码 异步通知可能出现订单重复通知 需要做去重处理
             if ("TRADE_SUCCESS".equals(params.get("trade_status")) || "TRADE_FINISHED".equals(params.get("trade_status"))) {
-                // 获取系统订单id,如果长度>15是order订单,反之是package订单
                 String id = params.get("out_trade_no");
-                if (id.length() == 18 && id.startsWith("2020")) {
-                    Order order = orderService.getOrderByOrderId(id.split("_")[0]);
+                if (id.startsWith("p_")) {
+                    Order order = orderService.getOrderByOrderId(id.split("_")[1]);
                     if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
                         return "success";
                     }
+                    if (ObjectUtil.notEqual(id.split("_")[1], order.getOrderId())) {
+                        return "fail";
+                    }
                     log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
                     redisService.del("panel::user::" + order.getUserId());
-                    // 获取是否混合支付信息
-                    Boolean isMixedPay = "1".equals(id.split("_")[1]);
-                    if (isMixedPay) {
-                        order.setIsMixedPay(true);
-                        order.setMixedMoneyAmount(order.getPrice().subtract(new BigDecimal(params.get("total_amount"))));
-                    } else {
-                        order.setIsMixedPay(false);
-                        order.setMixedMoneyAmount(BigDecimal.ZERO);
-                    }
-                    order.setMixedPayAmount(new BigDecimal(params.get("total_amount")));
+                    order.setPayAmount(new BigDecimal(params.get("total_amount")));
                     // 查询用户当前套餐
                     Order currentPlan = orderService.getCurrentPlan(order.getUserId());
                     // 查询是否新用户
                     Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
                     Boolean isNewPayer = buyCount == 0;
                     // 更新订单
-                    if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "支付宝", params.get("buyer_id"), isNewPayer, params.get("trade_no"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                    if (orderService.updateFinishedOrder(order.getPayAmount(), "支付宝", params.get("buyer_id"), isNewPayer, params.get("trade_no"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                        order.setPayType("支付宝");
                         userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
                         Date now = new Date();
                         // 给该用户新增资金明细表
@@ -131,15 +125,18 @@ public class NotifyController {
                             // 用户有等级的话,给返利
                             if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
                                 redisService.del("panel::user::" + inviteUser.getId());
+                                BigDecimal commission = order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP);
                                 // 判断是循环返利还是首次返利
                                 if (inviteUser.getInviteCycleEnable()) {
-                                    userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    log.info("id为{}的用户开始循环返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                    userService.handleCommission(inviteUser.getId(), commission);
                                 } else {
                                     // 首次返利,查该用户是否第一次充值
                                     Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
                                     if (count == 1) {
                                         // 首次
-                                        userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                        log.info("id为{}的用户开始首次返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                        userService.handleCommission(inviteUser.getId(), commission);
                                     } else {
                                         return "success";
                                     }
@@ -147,7 +144,7 @@ public class NotifyController {
                                 // 给邀请人新增返利明细
                                 Funds inviteFund = new Funds();
                                 inviteFund.setUserId(inviteUser.getId());
-                                inviteFund.setPrice(order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                inviteFund.setPrice(order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                                 inviteFund.setTime(now);
                                 inviteFund.setRelatedOrderId(order.getOrderId());
                                 inviteFund.setContent("佣金");
@@ -159,22 +156,19 @@ public class NotifyController {
                         return "success";
                     }
                 } else {
-                    Package pack = packageService.getById(id.split("_")[0]);
+                    Package pack = packageService.getById(id.split("_")[1]);
                     if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
                         return "success";
                     }
-                    // 获取是否混合支付信息
-                    Boolean isMixedPay = "1".equals(id.split("_")[1]);
-                    if (isMixedPay) {
-                        pack.setIsMixedPay(true);
-                        pack.setMixedMoneyAmount(pack.getPrice().subtract(new BigDecimal(params.get("total_amount"))));
-                    } else {
-                        pack.setIsMixedPay(false);
-                        pack.setMixedMoneyAmount(BigDecimal.ZERO);
+                    if (ObjectUtil.notEqual(id.split("_")[1], pack.getId())) {
+                        return "fail";
                     }
-                    pack.setMixedPayAmount(new BigDecimal(params.get("total_amount")));
+                    log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
+                    redisService.del("panel::user::" + pack.getUserId());
+                    pack.setPayAmount(new BigDecimal(params.get("total_amount")));
                     // 更新流量包订单
-                    if (packageService.updateFinishedPackageOrder(pack.getIsMixedPay(), pack.getMixedMoneyAmount(), pack.getMixedPayAmount(), "支付宝", params.get("buyer_id"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+                    if (packageService.updateFinishedPackageOrder(pack.getPayAmount(), "支付宝", params.get("buyer_id"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+                        pack.setPayType("支付宝");
                         // 查询用户当前套餐
                         Order currentOrder = orderService.getCurrentPlan(pack.getUserId());
                         userService.updateUserAfterBuyPackageOrder(currentOrder, pack);

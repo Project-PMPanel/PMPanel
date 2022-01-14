@@ -44,12 +44,10 @@ public class PackageServiceImpl extends ServiceImpl<PackageMapper, Package> impl
 
     @Override
     @Transactional
-    public boolean updateFinishedPackageOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Date payTime, Integer status, Integer id) {
+    public boolean updateFinishedPackageOrder(BigDecimal payAmount, String payType, String payer, Date payTime, Integer status, Integer id) {
         UpdateWrapper<Package> packageUpdateWrapper = new UpdateWrapper<>();
         packageUpdateWrapper
-                .set("is_mixed_pay", isMixedPay)
-                .set("mixed_money_amount", mixedMoneyAmount)
-                .set("mixed_pay_amount", mixedPayAmount)
+                .set("pay_amount", payAmount)
                 .set("pay_type", payType)
                 .set("payer", payer)
                 .set("pay_time", payTime)
@@ -64,7 +62,7 @@ public class PackageServiceImpl extends ServiceImpl<PackageMapper, Package> impl
         Date now = new Date();
         QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
         packageQueryWrapper
-                .select("sum(mixed_pay_amount) as total")
+                .select("sum(pay_amount) as total")
                 .eq("status", 1)
                 .gt("pay_time", DateUtil.beginOfMonth(now))
                 .lt("pay_time", DateUtil.endOfMonth(now));
@@ -77,7 +75,7 @@ public class PackageServiceImpl extends ServiceImpl<PackageMapper, Package> impl
         Date now = new Date();
         QueryWrapper<Package> packageQueryWrapper = new QueryWrapper<>();
         packageQueryWrapper
-                .select("sum(mixed_pay_amount) as total")
+                .select("sum(pay_amount) as total")
                 .eq("status", 1)
                 .gt("pay_time", DateUtil.beginOfDay(now));
         Map<String, Object> map = this.getMap(packageQueryWrapper);

@@ -18,11 +18,7 @@ public class CommonOrder implements Serializable {
 
     private String id;
 
-    private Boolean isMixedPay;
-
-    private BigDecimal mixedMoneyAmount;
-
-    private BigDecimal mixedPayAmount;
+    private BigDecimal payAmount;
 
     private String payType;
 

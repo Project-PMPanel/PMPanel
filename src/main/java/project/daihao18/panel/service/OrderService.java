@@ -34,7 +34,7 @@ public interface OrderService extends IService<Order> {
 
     Long getBuyCountByUserId(Integer userId);
 
-    boolean updateFinishedOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Boolean isNewPayer, String tradeNo, Date payTime, Integer status, Integer id);
+    boolean updateFinishedOrder(BigDecimal payAmount, String payType, String payer, Boolean isNewPayer, String tradeNo, Date payTime, Integer status, Integer id);
 
     Long getUsedCountByPlanId(Integer planId);
 

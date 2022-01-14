@@ -168,12 +168,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     @Transactional
-    public boolean updateFinishedOrder(boolean isMixedPay, BigDecimal mixedMoneyAmount, BigDecimal mixedPayAmount, String payType, String payer, Boolean isNewPayer, String tradeNo, Date payTime, Integer status, Integer id) {
+    public boolean updateFinishedOrder(BigDecimal payAmount, String payType, String payer, Boolean isNewPayer, String tradeNo, Date payTime, Integer status, Integer id) {
         UpdateWrapper<Order> orderUpdateWrapper = new UpdateWrapper<>();
         orderUpdateWrapper
-                .set("is_mixed_pay", isMixedPay)
-                .set("mixed_money_amount", mixedMoneyAmount)
-                .set("mixed_pay_amount", mixedPayAmount)
+                .set("pay_amount", payAmount)
                 .set("pay_type", payType)
                 .set("payer", payer)
                 .set("is_new_payer", isNewPayer)
@@ -243,6 +241,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             // 关闭支付宝订单
             CommonOrder commonOrder = new CommonOrder();
             commonOrder.setId(order.getOrderId());
+            commonOrder.setType("plan");
             AlipayTradeCloseResponse close = alipay.close(commonOrder);
             if (ObjectUtil.isNotEmpty(close)) {
                 log.debug("closeResponse: {}", close.getBody());
@@ -267,7 +266,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Date now = new Date();
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
         orderQueryWrapper
-                .select("sum(mixed_pay_amount) as total")
+                .select("sum(pay_amount) as total")
                 .eq("status", 1)
                 .gt("pay_time", DateUtil.beginOfMonth(now))
                 .lt("pay_time", DateUtil.endOfMonth(now));
@@ -280,7 +279,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Date now = new Date();
         QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
         orderQueryWrapper
-                .select("sum(mixed_pay_amount) as total")
+                .select("sum(pay_amount) as total")
                 .eq("status", 1)
                 .gt("pay_time", DateUtil.beginOfDay(now));
         Map<String, Object> map = this.getMap(orderQueryWrapper);
