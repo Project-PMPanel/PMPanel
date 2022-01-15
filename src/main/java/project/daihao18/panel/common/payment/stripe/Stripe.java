@@ -24,7 +24,7 @@ import java.util.Map;
 @Component
 public class Stripe {
 
-    private final static String RETURN_URI = "http://localhost:1024/result/success";
+    private final static String RETURN_URI = "/result/success";
 
     @Autowired
     private ConfigService configService;
@@ -72,7 +72,7 @@ public class Stripe {
                 .setType("alipay")
                 .setStatementDescriptor(order.getId())
                 .putMetadata("out_trade_no", order.getId())
-                .setRedirect(new SourceCreateParams.Redirect.Builder().setReturnUrl(RETURN_URI).build())
+                .setRedirect(new SourceCreateParams.Redirect.Builder().setReturnUrl(configService.getValueByName("siteUrl") + RETURN_URI).build())
                 .build();
         Source source = Source.create(params);
         String url = source.getRedirect().getUrl();
