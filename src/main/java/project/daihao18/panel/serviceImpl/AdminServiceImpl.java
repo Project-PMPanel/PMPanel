@@ -332,19 +332,26 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getPaymentConfig() {
-        String[] keys = {"alipay", "wxpay", "alipayConfig"};
+        String[] keys = {"alipay", "wxpay", "alipayConfig", "stripeConfig"};
         Map<String, Object> paymentConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
             if ("alipay".equalsIgnoreCase(keys[i]) || "wxpay".equalsIgnoreCase(keys[i])) {
                 paymentConfig.put(keys[i], value);
-            } else {
+            } else if ("alipayConfig".equals(keys[i])) {
                 // 支付详细配置,转成map
                 Map<String, Object> map = JSONUtil.toBean(value, Map.class);
                 map.put("isCertMode", Boolean.parseBoolean(map.get("isCertMode").toString()));
                 map.put("web", Boolean.parseBoolean(map.get("web").toString()));
                 map.put("wap", Boolean.parseBoolean(map.get("wap").toString()));
                 map.put("f2f", Boolean.parseBoolean(map.get("f2f").toString()));
+                paymentConfig.put(keys[i], map);
+            } else if ("stripeConfig".equals(keys[i])) {
+                // stripe配置,转成map
+                Map<String, Object> map = JSONUtil.toBean(value, Map.class);
+                map.put("currency", map.get("currency"));
+                map.put("sk_live", map.get("sk_live"));
+                map.put("webhook_secret", map.get("webhook_secret"));
                 paymentConfig.put(keys[i], map);
             }
         }

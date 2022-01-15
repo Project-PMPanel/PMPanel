@@ -3,6 +3,7 @@ package project.daihao18.panel.service;
 import cn.hutool.core.date.DateTime;
 import com.alipay.api.AlipayApiException;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.stripe.exception.StripeException;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.entity.Package;
 import project.daihao18.panel.entity.*;
@@ -78,7 +79,7 @@ public interface UserService extends IService<User> {
 
     Result getPaymentConfig();
 
-    Result payOrder(HttpServletRequest request, CommonOrder order) throws AlipayApiException;
+    Result payOrder(HttpServletRequest request, CommonOrder order) throws AlipayApiException, StripeException;
 
     boolean updateUserAfterBuyOrder(Order order, boolean isNewBuy);
 

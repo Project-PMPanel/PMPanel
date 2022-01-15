@@ -117,6 +117,13 @@
             <version>2.7.0</version>
         </dependency>
 
+        <!--stripe-->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>20.95.0</version>
+        </dependency>
+
         <!--TG Bot-->
         <dependency>
             <groupId>com.github.pengrad</groupId>

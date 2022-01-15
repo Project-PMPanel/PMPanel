@@ -453,6 +453,7 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (106, 'withdrawRate', '0.15')
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (201, 'alipay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (202, 'wxpay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (203, 'alipayConfig', '{\"appId\":\"\",\"pId\":\"\",\"isCertMode\":false,\"appPrivateKey\":\"\",\"alipayPublicKey\":\"\",\"appCertPath\":\"\",\"alipayCertPath\":\"\",\"alipayRootCertPath\":\"\",\"serverUrl\":\"https://openapi.alipay.com/gateway.do\",\"domain\":\"http://127.0.0.1\",\"web\":false,\"wap\":false,\"f2f\":false}');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (204, 'stripeConfig', '{\"sk_live\":\"\",\"webhook_secret\":\"\",\"currency\":\"\"}');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (301, 'muSuffix', 'download.windowsupdate.com');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (302, 'userTrafficLogLimitDays', '3');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (401, 'clientConfig', '');

@@ -5,8 +5,12 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.internal.util.AlipaySignature;
+import com.alipay.api.internal.util.file.IOUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ijpay.alipay.AliPayApi;
+import com.stripe.model.Event;
+import com.stripe.model.EventData;
+import com.stripe.net.Webhook;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ import project.daihao18.panel.entity.User;
 import project.daihao18.panel.service.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
@@ -185,6 +190,135 @@ public class NotifyController {
                     }
                 }
             }
+            return "fail";
+        }
+    }
+
+    /**
+     * stripe回调
+     * @return
+     */
+    @PostMapping("/stripe")
+    @Transactional
+    public String stripeNotify(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        try {
+            // 获取stripe配置
+            Map<String, Object> stripeConfig = JSONUtil.toBean(configService.getValueByName("stripeConfig"), Map.class);
+            String endpointSecret = stripeConfig.get("webhook_secret").toString();
+            String payload = new String(IOUtils.toByteArray(request.getInputStream()), "UTF-8");
+            String sigHeader = request.getHeader("Stripe-Signature");
+
+            Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            String stripeType = event.getType();
+            if (stripeType.equals("charge." + "succeeded")) {
+                EventData eventData = event.getData();
+                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(event.getData().toJson(), Map.class).get("object").toString(), Map.class);
+                String id = params.get("statement_descriptor").toString();
+                if (id.startsWith("p_")) {
+                    Order order = orderService.getOrderByOrderId(id.split("_")[1]);
+                    if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
+                        return "success";
+                    }
+                    if (ObjectUtil.notEqual(id.split("_")[1], order.getOrderId())) {
+                        return "fail";
+                    }
+                    log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
+                    redisService.del("panel::user::" + order.getUserId());
+                    order.setPayAmount(new BigDecimal(params.get("amount").toString()));
+                    // 查询用户当前套餐
+                    Order currentPlan = orderService.getCurrentPlan(order.getUserId());
+                    // 查询是否新用户
+                    Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
+                    Boolean isNewPayer = buyCount == 0;
+                    // 更新订单
+                    if (orderService.updateFinishedOrder(order.getPayAmount(), "支付宝", null, isNewPayer, params.get("balance_transaction").toString(), DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                        order.setPayType("支付宝");
+                        userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
+                        Date now = new Date();
+                        // 给该用户新增资金明细表
+                        Funds funds = new Funds();
+                        funds.setUserId(order.getUserId());
+                        funds.setPrice(BigDecimal.ZERO.subtract(order.getPrice()));
+                        funds.setTime(now);
+                        funds.setRelatedOrderId(order.getOrderId());
+                        funds.setContent(order.getPlanDetailsMap().get("name").toString());
+                        funds.setContentEnglish(order.getPlanDetailsMap().get("nameEnglish").toString());
+                        fundsService.save(funds);
+
+                        // 如果有邀请人,给他加余额,并且给他新增一笔资金明细
+                        User user = userService.getById(order.getUserId());
+                        if (ObjectUtil.isNotEmpty(user.getParentId())) {
+                            User inviteUser = userService.getById(user.getParentId());
+                            // 用户有等级的话,给返利
+                            if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
+                                redisService.del("panel::user::" + inviteUser.getId());
+                                BigDecimal commission = order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP);
+                                // 判断是循环返利还是首次返利
+                                if (inviteUser.getInviteCycleEnable()) {
+                                    log.info("id为{}的用户开始循环返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                    userService.handleCommission(inviteUser.getId(), commission);
+                                } else {
+                                    // 首次返利,查该用户是否第一次充值
+                                    Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                                    if (count == 1) {
+                                        // 首次
+                                        log.info("id为{}的用户开始首次返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                        userService.handleCommission(inviteUser.getId(), commission);
+                                    } else {
+                                        return "success";
+                                    }
+                                }
+                                // 给邀请人新增返利明细
+                                Funds inviteFund = new Funds();
+                                inviteFund.setUserId(inviteUser.getId());
+                                inviteFund.setPrice(order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                inviteFund.setTime(now);
+                                inviteFund.setRelatedOrderId(order.getOrderId());
+                                inviteFund.setContent("佣金");
+                                inviteFund.setContentEnglish("Commission");
+                                fundsService.save(inviteFund);
+                                log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
+                            }
+                        }
+                        return "success";
+                    }
+                } else {
+                    Package pack = packageService.getById(id.split("_")[1]);
+                    if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
+                        return "success";
+                    }
+                    if (ObjectUtil.notEqual(id.split("_")[1], pack.getId())) {
+                        return "fail";
+                    }
+                    log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
+                    redisService.del("panel::user::" + pack.getUserId());
+                    pack.setPayAmount(new BigDecimal(params.get("amount").toString()));
+                    // 更新流量包订单
+                    if (packageService.updateFinishedPackageOrder(pack.getPayAmount(), "支付宝", null, DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+                        pack.setPayType("支付宝");
+                        // 查询用户当前套餐
+                        Order currentOrder = orderService.getCurrentPlan(pack.getUserId());
+                        userService.updateUserAfterBuyPackageOrder(currentOrder, pack);
+                        // 新增资金明细表
+                        Funds funds = new Funds();
+                        funds.setUserId(pack.getUserId());
+                        funds.setPrice(BigDecimal.ZERO.subtract(currentOrder.getPrice()));
+                        funds.setTime(new Date());
+                        funds.setRelatedOrderId(pack.getOrderId());
+                        funds.setContent("流量包-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
+                        funds.setContentEnglish("Package-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
+                        fundsService.save(funds);
+                        return "success";
+                    }
+                }
+                response.setStatus(500);
+                return "fail";
+            } else {
+                response.setStatus(500);
+                return "fail";
+            }
+        } catch (Exception e) {
+            response.setStatus(500);
             return "fail";
         }
     }

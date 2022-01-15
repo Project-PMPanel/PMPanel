@@ -15,6 +15,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.stripe.exception.StripeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.common.enums.PayStatusEnum;
 import project.daihao18.panel.common.exceptions.CustomException;
 import project.daihao18.panel.common.payment.alipay.Alipay;
+import project.daihao18.panel.common.payment.stripe.Stripe;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.common.response.ResultCodeEnum;
 import project.daihao18.panel.common.utils.*;
@@ -89,6 +91,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private Alipay alipay;
+
+    @Autowired
+    private Stripe stripe;
 
     @Autowired
     private TicketService ticketService;
@@ -881,7 +886,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     @Transactional
-    public Result payOrder(HttpServletRequest request, CommonOrder commonOrder) throws AlipayApiException {
+    public Result payOrder(HttpServletRequest request, CommonOrder commonOrder) throws AlipayApiException, StripeException {
         synchronized (OrderLockUtil.class) {
             User user = this.getById(JwtTokenUtil.getId(request));
             // 1.根据payType获取订单,再判断是否非法请求
@@ -1082,7 +1087,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return
      * @throws AlipayApiException
      */
-    private Result payOrderByAlipay(String alipay, CommonOrder order) throws AlipayApiException {
+    private Result payOrderByAlipay(String alipay, CommonOrder order) throws AlipayApiException, StripeException {
         Lock lock = new ReentrantLock();
         lock.lock();
         // 根据配置去调用接口
@@ -1090,6 +1095,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         switch (alipay) {
             case "alipay":
                 result = this.alipay.create(order);
+                break;
+            case "stripe":
+                result = this.stripe.create(order);
                 break;
         }
         lock.unlock();
