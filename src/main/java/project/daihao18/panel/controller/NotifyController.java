@@ -8,9 +8,13 @@ import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.internal.util.file.IOUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ijpay.alipay.AliPayApi;
+import com.stripe.Stripe;
+import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.EventData;
+import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
+import com.stripe.param.ChargeCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -196,6 +200,7 @@ public class NotifyController {
 
     /**
      * stripe回调
+     *
      * @return
      */
     @PostMapping("/stripe")
@@ -204,15 +209,34 @@ public class NotifyController {
         try {
             // 获取stripe配置
             Map<String, Object> stripeConfig = JSONUtil.toBean(configService.getValueByName("stripeConfig"), Map.class);
+            Stripe.apiKey = stripeConfig.get("sk_live").toString();
+
+            Event event = ApiResource.GSON.fromJson(request.getReader(), Event.class);
+            log.debug("stripe no check sign data {}", event.toJson());
             String endpointSecret = stripeConfig.get("webhook_secret").toString();
             String payload = new String(IOUtils.toByteArray(request.getInputStream()), "UTF-8");
             String sigHeader = request.getHeader("Stripe-Signature");
 
-            Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            log.debug("stripe event{}", event.toJson());
             String stripeType = event.getType();
-            if (stripeType.equals("charge." + "succeeded")) {
+            if (stripeType.equals("source.chargeable")) {
                 EventData eventData = event.getData();
-                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(event.getData().toJson(), Map.class).get("object").toString(), Map.class);
+                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(eventData.toJson(), Map.class).get("object").toString(), Map.class);
+                log.debug("stripe source.chargeable 回调参数{}", params);
+                ChargeCreateParams chargeCreateParams = ChargeCreateParams.builder()
+                        .setAmount(Long.parseLong(params.get("amount").toString()))
+                        .setCurrency(params.get("currency").toString().toUpperCase())
+                        .setSource(params.get("id").toString())
+                        .setMetadata(JSONUtil.toBean(JSONUtil.toJsonStr(params.get("metadata")), Map.class))
+                        .build();
+                Charge.create(chargeCreateParams);
+                return "success";
+            }
+            if (stripeType.equals("charge.succeeded")) {
+                EventData eventData = event.getData();
+                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(eventData.toJson(), Map.class).get("object").toString(), Map.class);
+                log.debug("stripe charge.succeeded 回调参数{}", params);
                 String id = params.get("statement_descriptor").toString();
                 if (id.startsWith("p_")) {
                     Order order = orderService.getOrderByOrderId(id.split("_")[1]);
@@ -311,12 +335,9 @@ public class NotifyController {
                         return "success";
                     }
                 }
-                response.setStatus(500);
-                return "fail";
-            } else {
-                response.setStatus(500);
-                return "fail";
             }
+            response.setStatus(500);
+            return "fail";
         } catch (Exception e) {
             response.setStatus(500);
             return "fail";

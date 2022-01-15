@@ -55,20 +55,10 @@ public class Stripe {
             // subject = subject.concat(FlowSizeConverterUtil.BytesToGb(packageService.getById(order.getId()).getTransferEnable()) + " GB");
             order.setId("t_".concat(order.getId()));
         }
-
-        // 查汇率 https://api.exchangerate.host/latest?symbols=JPY&base=CNY
-        String api = "https://api.exchangerate.host/latest?symbols=" + stripeConfig.get("currency").toString().toUpperCase() + "&base=CNY";
-        Map res = restTemplate.getForObject(api, Map.class);
-        BigDecimal rate = BigDecimal.ZERO;
-        try {
-            Map<String, Object> rates = (Map<String, Object>) res.get("rates");
-            rate = new BigDecimal(rates.get(stripeConfig.get("currency").toString().toUpperCase()).toString()).setScale(2, RoundingMode.HALF_UP);
-        } catch (Exception e) {
-        }
         com.stripe.Stripe.apiKey = stripeConfig.get("sk_live").toString();
         SourceCreateParams params = SourceCreateParams.builder()
-                .setAmount(order.getPayAmount().multiply(rate).longValue())
-                .setCurrency(stripeConfig.get("currency").toString())
+                .setAmount(order.getPayAmount().multiply(new BigDecimal("100")).longValue())
+                .setCurrency("CNY")
                 .setType("alipay")
                 .setStatementDescriptor(order.getId())
                 .putMetadata("out_trade_no", order.getId())
