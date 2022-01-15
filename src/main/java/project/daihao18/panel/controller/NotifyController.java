@@ -9,12 +9,9 @@ import com.alipay.api.internal.util.file.IOUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ijpay.alipay.AliPayApi;
 import com.stripe.Stripe;
-import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.EventData;
-import com.stripe.net.ApiResource;
 import com.stripe.net.Webhook;
-import com.stripe.param.ChargeCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -211,32 +208,17 @@ public class NotifyController {
             Map<String, Object> stripeConfig = JSONUtil.toBean(configService.getValueByName("stripeConfig"), Map.class);
             Stripe.apiKey = stripeConfig.get("sk_live").toString();
 
-            Event event = ApiResource.GSON.fromJson(request.getReader(), Event.class);
-            log.debug("stripe no check sign data {}", event.toJson());
             String endpointSecret = stripeConfig.get("webhook_secret").toString();
             String payload = new String(IOUtils.toByteArray(request.getInputStream()), "UTF-8");
             String sigHeader = request.getHeader("Stripe-Signature");
 
-            event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
             log.debug("stripe event{}", event.toJson());
             String stripeType = event.getType();
-            if (stripeType.equals("source.chargeable")) {
+            if (stripeType.equals("payment_intent.succeeded")) {
                 EventData eventData = event.getData();
                 Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(eventData.toJson(), Map.class).get("object").toString(), Map.class);
-                log.debug("stripe source.chargeable 回调参数{}", params);
-                ChargeCreateParams chargeCreateParams = ChargeCreateParams.builder()
-                        .setAmount(Long.parseLong(params.get("amount").toString()))
-                        .setCurrency(params.get("currency").toString().toUpperCase())
-                        .setSource(params.get("id").toString())
-                        .setMetadata(JSONUtil.toBean(JSONUtil.toJsonStr(params.get("metadata")), Map.class))
-                        .build();
-                Charge.create(chargeCreateParams);
-                return "success";
-            }
-            if (stripeType.equals("charge.succeeded")) {
-                EventData eventData = event.getData();
-                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(eventData.toJson(), Map.class).get("object").toString(), Map.class);
-                log.debug("stripe charge.succeeded 回调参数{}", params);
+                log.debug("stripe payment_intent.succeeded 回调参数{}", params);
                 String id = params.get("statement_descriptor").toString();
                 if (id.startsWith("p_")) {
                     Order order = orderService.getOrderByOrderId(id.split("_")[1]);
@@ -246,16 +228,16 @@ public class NotifyController {
                     if (ObjectUtil.notEqual(id.split("_")[1], order.getOrderId())) {
                         return "fail";
                     }
-                    log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
+                    log.info("通知成功,开始处理: {}", params.get("statement_descriptor"));
                     redisService.del("panel::user::" + order.getUserId());
-                    order.setPayAmount(new BigDecimal(params.get("amount").toString()));
+                    order.setPayAmount(new BigDecimal(params.get("amount").toString()).divide(new BigDecimal("100")));
                     // 查询用户当前套餐
                     Order currentPlan = orderService.getCurrentPlan(order.getUserId());
                     // 查询是否新用户
                     Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
                     Boolean isNewPayer = buyCount == 0;
                     // 更新订单
-                    if (orderService.updateFinishedOrder(order.getPayAmount(), "支付宝", null, isNewPayer, params.get("balance_transaction").toString(), DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                    if (orderService.updateFinishedOrder(order.getPayAmount(), "支付宝", null, isNewPayer, params.get("id").toString(), DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
                         order.setPayType("支付宝");
                         userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
                         Date now = new Date();
@@ -304,6 +286,7 @@ public class NotifyController {
                                 log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
                             }
                         }
+                        response.setStatus(200);
                         return "success";
                     }
                 } else {
@@ -316,7 +299,7 @@ public class NotifyController {
                     }
                     log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
                     redisService.del("panel::user::" + pack.getUserId());
-                    pack.setPayAmount(new BigDecimal(params.get("amount").toString()));
+                    pack.setPayAmount(new BigDecimal(params.get("amount").toString()).divide(new BigDecimal("100")));
                     // 更新流量包订单
                     if (packageService.updateFinishedPackageOrder(pack.getPayAmount(), "支付宝", null, DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
                         pack.setPayType("支付宝");
@@ -332,6 +315,7 @@ public class NotifyController {
                         funds.setContent("流量包-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
                         funds.setContentEnglish("Package-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
                         fundsService.save(funds);
+                        response.setStatus(200);
                         return "success";
                     }
                 }

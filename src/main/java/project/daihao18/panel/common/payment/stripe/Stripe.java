@@ -2,8 +2,11 @@ package project.daihao18.panel.common.payment.stripe;
 
 import cn.hutool.json.JSONUtil;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Source;
-import com.stripe.param.SourceCreateParams;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.PaymentMethod;
+import com.stripe.param.PaymentIntentConfirmParams;
+import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.param.PaymentMethodCreateParams;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +18,6 @@ import project.daihao18.panel.service.ConfigService;
 import project.daihao18.panel.service.PackageService;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,16 +58,27 @@ public class Stripe {
             order.setId("t_".concat(order.getId()));
         }
         com.stripe.Stripe.apiKey = stripeConfig.get("sk_live").toString();
-        SourceCreateParams params = SourceCreateParams.builder()
+        PaymentMethodCreateParams paymentMethodCreateParams = PaymentMethodCreateParams.builder()
+                .setType(PaymentMethodCreateParams.Type.ALIPAY).build();
+        PaymentMethod paymentMethod = PaymentMethod.create(paymentMethodCreateParams);
+        PaymentIntentCreateParams paymentIntentCreateParams = PaymentIntentCreateParams.builder()
+                .addPaymentMethodType("alipay")
                 .setAmount(order.getPayAmount().multiply(new BigDecimal("100")).longValue())
-                .setCurrency("CNY")
-                .setType("alipay")
+                .setCurrency(stripeConfig.get("currency").toString().toUpperCase())
                 .setStatementDescriptor(order.getId())
                 .putMetadata("out_trade_no", order.getId())
-                .setRedirect(new SourceCreateParams.Redirect.Builder().setReturnUrl(configService.getValueByName("siteUrl") + RETURN_URI).build())
+                .setPaymentMethod(paymentMethod.getId())
                 .build();
-        Source source = Source.create(params);
-        String url = source.getRedirect().getUrl();
+        PaymentIntent create = PaymentIntent.create(paymentIntentCreateParams);
+
+        PaymentIntent resource = PaymentIntent.retrieve(create.getId());
+        PaymentIntentConfirmParams confirmParams = PaymentIntentConfirmParams.builder()
+                .setPaymentMethod(create.getPaymentMethod())
+                .setReturnUrl(configService.getValueByName("siteUrl") + RETURN_URI)
+                .build();
+        resource.setLivemode(true);
+        PaymentIntent paymentIntent = resource.confirm(confirmParams);
+        String url = paymentIntent.getNextAction().getAlipayHandleRedirect().getUrl();
         Map<String, Object> map = new HashMap<>();
         map.put("url", url);
         map.put("type", "link");
