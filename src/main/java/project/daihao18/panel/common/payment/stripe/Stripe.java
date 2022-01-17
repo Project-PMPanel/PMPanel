@@ -72,7 +72,7 @@ public class Stripe {
         PaymentIntent resource = PaymentIntent.retrieve(create.getId());
         PaymentIntentConfirmParams confirmParams = PaymentIntentConfirmParams.builder()
                 .setPaymentMethod(create.getPaymentMethod())
-                .setReturnUrl(stripeConfig.get("returnUrl").toString())
+                .setReturnUrl(stripeConfig.get("return_url").toString())
                 .build();
         resource.setLivemode(true);
         PaymentIntent paymentIntent = resource.confirm(confirmParams);
