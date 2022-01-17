@@ -352,6 +352,7 @@ public class AdminServiceImpl implements AdminService {
                 map.put("currency", map.get("currency"));
                 map.put("sk_live", map.get("sk_live"));
                 map.put("webhook_secret", map.get("webhook_secret"));
+                map.put("return_url", map.get("return_url"));
                 paymentConfig.put(keys[i], map);
             }
         }

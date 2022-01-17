@@ -26,8 +26,6 @@ import java.util.Map;
 @Component
 public class Stripe {
 
-    private final static String RETURN_URI = "/result/success";
-
     @Autowired
     private ConfigService configService;
 
@@ -74,7 +72,7 @@ public class Stripe {
         PaymentIntent resource = PaymentIntent.retrieve(create.getId());
         PaymentIntentConfirmParams confirmParams = PaymentIntentConfirmParams.builder()
                 .setPaymentMethod(create.getPaymentMethod())
-                .setReturnUrl(configService.getValueByName("siteUrl") + RETURN_URI)
+                .setReturnUrl(stripeConfig.get("returnUrl").toString())
                 .build();
         resource.setLivemode(true);
         PaymentIntent paymentIntent = resource.confirm(confirmParams);
