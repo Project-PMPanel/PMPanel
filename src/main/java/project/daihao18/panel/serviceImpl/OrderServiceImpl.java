@@ -247,10 +247,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 log.debug("closeResponse: {}", close.getBody());
             }
         }
-        // 关闭5分钟前本地订单
-        UpdateWrapper<Order> orderUpdateWrapper = new UpdateWrapper<>();
-        orderUpdateWrapper.set("status", 2).lt("create_time", DateUtil.offsetMinute(now, -5)).eq("status", 0);
-        this.update(orderUpdateWrapper);
         // 返回需要查询的订单
         orderQueryWrapper = new QueryWrapper<>();
         orderQueryWrapper

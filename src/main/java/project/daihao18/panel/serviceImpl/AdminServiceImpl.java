@@ -183,12 +183,12 @@ public class AdminServiceImpl implements AdminService {
             BigDecimal thisMonthPackageIncome = BigDecimal.ZERO;
             if (ObjectUtil.isNotEmpty(orders)) {
                 for (Order order : orders) {
-                    thisMonthOrderIncome = thisMonthOrderIncome.add(order.getPayAmount());
+                    thisMonthOrderIncome = thisMonthOrderIncome.add(order.getPrice());
                 }
             }
             if (ObjectUtil.isNotEmpty(packages)) {
                 for (Package packagee : packages) {
-                    thisMonthPackageIncome = thisMonthPackageIncome.add(packagee.getPayAmount());
+                    thisMonthPackageIncome = thisMonthPackageIncome.add(packagee.getPrice());
                 }
             }
             Map<String, Object> map1 = new HashMap<>();

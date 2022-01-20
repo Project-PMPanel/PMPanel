@@ -499,6 +499,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             Result calcInfo = this.getChoosePlanInfo(user, plan.getMonths(), plan.getPrice(), order.getMonthCount());
             order.setPrice(new BigDecimal(calcInfo.getData().get("calcPrice").toString()));
+            order.setPayAmount(BigDecimal.ZERO);
             order.setExpire(DateUtil.parse(calcInfo.getData().get("calcExpire").toString()));
             order.setOrderId(OrderUtil.getOrderId());
             order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
@@ -1018,7 +1019,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Order currentPlan = orderService.getCurrentPlan(user.getId());
         // 更新order成功后更新用户
         Date now = new Date();
-        if (orderService.updateFinishedOrder(order.getPrice(), "余额", null, null, null, now, PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+        if (orderService.updateFinishedOrder(BigDecimal.ZERO, "余额", null, null, null, now, PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
             order.setPayType("余额");
             this.updateUserAfterBuyOrder(orderService.getOrderByOrderId(order.getOrderId()), ObjectUtil.isEmpty(currentPlan));
             // 新增资金明细表
@@ -1059,7 +1060,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         Date now = new Date();
         // 更新pack成功后更新用户
-        if (packageService.updateFinishedPackageOrder(pack.getPrice(), "余额", null, now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+        if (packageService.updateFinishedPackageOrder(BigDecimal.ZERO, "余额", null, now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
             pack.setPayType("余额");
             this.updateUserAfterBuyPackageOrder(currentOrder, packageService.getById(pack.getId()));
             // 新增资金明细表
