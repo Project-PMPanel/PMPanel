@@ -763,6 +763,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional
     public Result addPackageOrder(Integer userId, Package pack) {
         synchronized (OrderLockUtil.class) {
+            // 最低3元起
+            if (pack.getPrice().compareTo(new BigDecimal("3.00")) < 0) {
+                return Result.error().message("最低三元起").messageEnglish("At least 3 CNY");
+            }
             // 先查询该用户是否存在未支付的流量包订单
             Package existPackageOrder = packageService.getOne(new QueryWrapper<Package>().eq("user_id", userId).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
             if (ObjectUtil.isNotEmpty(existPackageOrder)) {
