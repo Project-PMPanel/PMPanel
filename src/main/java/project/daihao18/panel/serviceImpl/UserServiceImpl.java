@@ -945,7 +945,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 不管是新购还是预先购买套餐,先设置user公共部分
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
         if ("余额".equals(order.getPayType())) {
-            userUpdateWrapper.setSql("money=money-" + order.getPayAmount());
+            userUpdateWrapper.setSql("money=money-" + order.getPrice());
         }
         userUpdateWrapper.set("expire_in", order.getExpire());
         if (isNewBuy) {
@@ -988,7 +988,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 更新用户
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
         if ("余额".equals(pack.getPayType())) {
-            userUpdateWrapper.setSql("money=money-" + pack.getPayAmount());
+            userUpdateWrapper.setSql("money=money-" + pack.getPrice());
         }
         userUpdateWrapper
                 .setSql("transfer_enable=transfer_enable+" + pack.getPrice().longValue() * FlowSizeConverterUtil.GbToBytes(packagee))
