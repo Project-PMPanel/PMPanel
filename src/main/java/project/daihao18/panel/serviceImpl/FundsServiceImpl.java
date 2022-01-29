@@ -44,6 +44,8 @@ public class FundsServiceImpl extends ServiceImpl<FundsMapper, Funds> implements
             map.put("enableWithdraw", true);
             // 把提现费率放进去
             map.put("withdrawRate", new BigDecimal(configService.getValueByName("withdrawRate")).multiply(new BigDecimal("100")));
+            // 把最低提现金额放进去
+            map.put("minWithdraw", new BigDecimal(configService.getValueByName("minWithdraw")));
         } else {
             map.put("enableWithdraw", false);
         }
