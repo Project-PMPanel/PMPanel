@@ -139,8 +139,6 @@ CREATE TABLE `order` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_id` (`order_id`) COMMENT '订单唯一',
   KEY `order_userid` (`user_id`),
-  KEY `order_planid` (`plan_id`),
-  CONSTRAINT `order_planid` FOREIGN KEY (`plan_id`) REFERENCES `plan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `order_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单记录';
 
