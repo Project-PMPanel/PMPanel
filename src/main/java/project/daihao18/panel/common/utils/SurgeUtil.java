@@ -63,7 +63,7 @@ public class SurgeUtil {
         StringBuilder builder = new StringBuilder();
         StringBuilder nodeName = new StringBuilder();
         // 开始处理订阅内容
-        builder.append("#!MANAGED-CONFIG " + user.getSubsLink() + "\n\n");
+        builder.append("#!MANAGED-CONFIG " + user.getSubsLink() + " interval=43200 strict=true\n\n");
         builder.append("#---------------------------------------------------#\n");
         builder.append("## 上次更新于：" + DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + "\n");
         builder.append("#---------------------------------------------------#\n\n");
