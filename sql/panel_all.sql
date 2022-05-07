@@ -125,9 +125,7 @@ CREATE TABLE `order` (
   `plan_id` int DEFAULT '0' COMMENT '套餐id',
   `month_count` int DEFAULT '0' COMMENT '订购月数',
   `price` decimal(10,2) unsigned DEFAULT '0.00' COMMENT '应付价格',
-  `is_mixed_pay` int DEFAULT NULL COMMENT '是否混合支付(余额+支付网关)',
-  `mixed_money_amount` decimal(10,2) DEFAULT NULL COMMENT '混合支付余额金额',
-  `mixed_pay_amount` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '混合支付网关支付金额',
+  `pay_amount` decimal(10, 2) unsigned DEFAULT '0.00' COMMENT '支付金额',
   `pay_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '支付网关支付类型',
   `payer` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '支付者',
   `is_new_payer` int DEFAULT '0' COMMENT '是否新用户',
@@ -141,8 +139,6 @@ CREATE TABLE `order` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `order_id` (`order_id`) COMMENT '订单唯一',
   KEY `order_userid` (`user_id`),
-  KEY `order_planid` (`plan_id`),
-  CONSTRAINT `order_planid` FOREIGN KEY (`plan_id`) REFERENCES `plan` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `order_userid` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单记录';
 
@@ -158,9 +154,7 @@ CREATE TABLE `package` (
   `transfer_enable` bigint DEFAULT '0',
   `expire` datetime DEFAULT CURRENT_TIMESTAMP,
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `is_mixed_pay` int DEFAULT NULL COMMENT '是否混合支付(余额+支付网关)',
-  `mixed_money_amount` decimal(10,2) DEFAULT NULL COMMENT '混合支付余额金额',
-  `mixed_pay_amount` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '混合支付网关支付金额',
+  `pay_amount` decimal(10, 2) unsigned DEFAULT '0.00' COMMENT '支付金额',
   `pay_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '支付网关支付类型',
   `payer` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '支付者',
   `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
@@ -457,6 +451,7 @@ INSERT INTO `config`(`id`, `name`, `value`) VALUES (106, 'withdrawRate', '0.15')
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (201, 'alipay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (202, 'wxpay', 'none');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (203, 'alipayConfig', '{\"appId\":\"\",\"pId\":\"\",\"isCertMode\":false,\"appPrivateKey\":\"\",\"alipayPublicKey\":\"\",\"appCertPath\":\"\",\"alipayCertPath\":\"\",\"alipayRootCertPath\":\"\",\"serverUrl\":\"https://openapi.alipay.com/gateway.do\",\"domain\":\"http://127.0.0.1\",\"web\":false,\"wap\":false,\"f2f\":false}');
+INSERT INTO `config`(`id`, `name`, `value`) VALUES (204, 'stripeConfig', '{\"sk_live\":\"\",\"webhook_secret\":\"\",\"currency\":\"\",\"return_url\":\"\"}');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (301, 'muSuffix', 'download.windowsupdate.com');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (302, 'userTrafficLogLimitDays', '3');
 INSERT INTO `config`(`id`, `name`, `value`) VALUES (401, 'clientConfig', '');
@@ -473,3 +468,4 @@ INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_
 INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (3, 'checkJobTaskService', 'checkJob', NULL, '0 * * * * ?', '检查任务', 1, '2020-11-11 11:11:11', NULL);
 INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (4, 'checkOrderJobTaskService', 'checkOrderJob', NULL, '*/5 * * * * ?', '支付宝主动查单', 1, '2020-11-11 11:11:11', NULL);
 INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (5, 'notifyRenewJobTaskService', 'notifyRenewJob', NULL, '0 0 2 28 * ?', '月底发送续费通知邮件', 1, '2020-11-11 11:11:11', NULL);
+INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (6, 'telegramJobTaskService', 'telegramJob', NULL, '*/2 * * * * ?', 'telegram任务', 1, '2020-11-11 11:11:11', NULL);

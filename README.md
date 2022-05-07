@@ -14,9 +14,3 @@ The Proxy Manage Panel is an open source web application which can manage shadow
 [TG Channel](https://t.me/PMPanel)
 
 [TG Group](https://t.me/pmpanel_group)
-
----
-
-### Donate
-
-trc20-usdt: TGnSCyNujTUT9DYBvTDj4k3JsWdDgaHNU1

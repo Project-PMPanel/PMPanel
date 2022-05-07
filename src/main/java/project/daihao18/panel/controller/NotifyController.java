@@ -5,8 +5,13 @@ import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.internal.util.AlipaySignature;
+import com.alipay.api.internal.util.file.IOUtils;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ijpay.alipay.AliPayApi;
+import com.stripe.Stripe;
+import com.stripe.model.Event;
+import com.stripe.model.EventData;
+import com.stripe.net.Webhook;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,7 @@ import project.daihao18.panel.entity.User;
 import project.daihao18.panel.service.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
@@ -86,112 +92,159 @@ public class NotifyController {
             }
             // 这里加上商户的业务逻辑程序代码 异步通知可能出现订单重复通知 需要做去重处理
             if ("TRADE_SUCCESS".equals(params.get("trade_status")) || "TRADE_FINISHED".equals(params.get("trade_status"))) {
-                // 获取系统订单id,如果长度>15是order订单,反之是package订单
-                String id = params.get("out_trade_no");
-                if (id.length() == 18 && id.startsWith("2020")) {
-                    Order order = orderService.getOrderByOrderId(id.split("_")[0]);
-                    if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
-                        return "success";
-                    }
-                    log.info("通知成功,开始处理: {}", params.get("out_trade_no"));
-                    redisService.del("panel::user::" + order.getUserId());
-                    // 获取是否混合支付信息
-                    Boolean isMixedPay = "1".equals(id.split("_")[1]);
-                    if (isMixedPay) {
-                        order.setIsMixedPay(true);
-                        order.setMixedMoneyAmount(order.getPrice().subtract(new BigDecimal(params.get("total_amount"))));
-                    } else {
-                        order.setIsMixedPay(false);
-                        order.setMixedMoneyAmount(BigDecimal.ZERO);
-                    }
-                    order.setMixedPayAmount(new BigDecimal(params.get("total_amount")));
-                    // 查询用户当前套餐
-                    Order currentPlan = orderService.getCurrentPlan(order.getUserId());
-                    // 查询是否新用户
-                    Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
-                    Boolean isNewPayer = buyCount == 0;
-                    // 更新订单
-                    if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "支付宝", params.get("buyer_id"), isNewPayer, params.get("trade_no"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
-                        userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
-                        Date now = new Date();
-                        // 给该用户新增资金明细表
-                        Funds funds = new Funds();
-                        funds.setUserId(order.getUserId());
-                        funds.setPrice(BigDecimal.ZERO.subtract(order.getPrice()));
-                        funds.setTime(now);
-                        funds.setRelatedOrderId(order.getOrderId());
-                        funds.setContent(order.getPlanDetailsMap().get("name").toString());
-                        funds.setContentEnglish(order.getPlanDetailsMap().get("nameEnglish").toString());
-                        fundsService.save(funds);
-
-                        // 如果有邀请人,给他加余额,并且给他新增一笔资金明细
-                        User user = userService.getById(order.getUserId());
-                        if (ObjectUtil.isNotEmpty(user.getParentId())) {
-                            User inviteUser = userService.getById(user.getParentId());
-                            // 用户有等级的话,给返利
-                            if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
-                                redisService.del("panel::user::" + inviteUser.getId());
-                                // 判断是循环返利还是首次返利
-                                if (inviteUser.getInviteCycleEnable()) {
-                                    userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                } else {
-                                    // 首次返利,查该用户是否第一次充值
-                                    Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
-                                    if (count == 1) {
-                                        // 首次
-                                        userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                    } else {
-                                        return "success";
-                                    }
-                                }
-                                // 给邀请人新增返利明细
-                                Funds inviteFund = new Funds();
-                                inviteFund.setUserId(inviteUser.getId());
-                                inviteFund.setPrice(order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
-                                inviteFund.setTime(now);
-                                inviteFund.setRelatedOrderId(order.getOrderId());
-                                inviteFund.setContent("佣金");
-                                inviteFund.setContentEnglish("Commission");
-                                fundsService.save(inviteFund);
-                                log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
-                            }
-                        }
-                        return "success";
-                    }
-                } else {
-                    Package pack = packageService.getById(id.split("_")[0]);
-                    if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
-                        return "success";
-                    }
-                    // 获取是否混合支付信息
-                    Boolean isMixedPay = "1".equals(id.split("_")[1]);
-                    if (isMixedPay) {
-                        pack.setIsMixedPay(true);
-                        pack.setMixedMoneyAmount(pack.getPrice().subtract(new BigDecimal(params.get("total_amount"))));
-                    } else {
-                        pack.setIsMixedPay(false);
-                        pack.setMixedMoneyAmount(BigDecimal.ZERO);
-                    }
-                    pack.setMixedPayAmount(new BigDecimal(params.get("total_amount")));
-                    // 更新流量包订单
-                    if (packageService.updateFinishedPackageOrder(pack.getIsMixedPay(), pack.getMixedMoneyAmount(), pack.getMixedPayAmount(), "支付宝", params.get("buyer_id"), DateUtil.parse(params.get("gmt_payment")), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
-                        // 查询用户当前套餐
-                        Order currentOrder = orderService.getCurrentPlan(pack.getUserId());
-                        userService.updateUserAfterBuyPackageOrder(currentOrder, pack);
-                        // 新增资金明细表
-                        Funds funds = new Funds();
-                        funds.setUserId(pack.getUserId());
-                        funds.setPrice(BigDecimal.ZERO.subtract(currentOrder.getPrice()));
-                        funds.setTime(new Date());
-                        funds.setRelatedOrderId(pack.getOrderId());
-                        funds.setContent("流量包-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
-                        funds.setContentEnglish("Package-" + currentOrder.getPlanDetailsMap().get("transferEnable").toString() + "GB");
-                        fundsService.save(funds);
-                        return "success";
-                    }
-                }
+                String outTradeNo = params.get("out_trade_no");
+                String tradeNo = params.get("trade_no");
+                String buyer = params.get("buyer_id");
+                return handleSuccessfulNotify(outTradeNo, tradeNo, buyer);
             }
             return "fail";
         }
+    }
+
+    /**
+     * stripe回调
+     *
+     * @return
+     */
+    @PostMapping("/stripe")
+    @Transactional
+    public String stripeNotify(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            // 获取stripe配置
+            Map<String, Object> stripeConfig = JSONUtil.toBean(configService.getValueByName("stripeConfig"), Map.class);
+            Stripe.apiKey = stripeConfig.get("sk_live").toString();
+
+            // 验签
+            String endpointSecret = stripeConfig.get("webhook_secret").toString();
+            String payload = new String(IOUtils.toByteArray(request.getInputStream()), "UTF-8");
+            String sigHeader = request.getHeader("Stripe-Signature");
+
+            Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            log.debug("stripe event{}", event.toJson());
+            String stripeType = event.getType();
+            // 支付成功
+            if (stripeType.equals("payment_intent.succeeded")) {
+                EventData eventData = event.getData();
+                Map<String, Object> params = JSONUtil.toBean(JSONUtil.toBean(eventData.toJson(), Map.class).get("object").toString(), Map.class);
+                log.debug("stripe payment_intent.succeeded 回调参数{}", params);
+                Map<String, String> metadata = JSONUtil.toBean(JSONUtil.toJsonStr(params.get("metadata")), Map.class);
+                String outTradeNo = metadata.get("out_trade_no");
+                String tradeNo = params.get("id").toString();
+                return handleSuccessfulNotify(outTradeNo, tradeNo, null);
+            }
+            response.setStatus(500);
+            return "fail";
+        } catch (Exception e) {
+            response.setStatus(500);
+            return e.getMessage();
+        }
+    }
+
+    /**
+     * 验签后必须提供系统订单号（p_或者t_开头）、支付提供方订单号、payer可选
+     * 默认成功返回success，如需自定义返回，请调用此方法后，自行判断是否为success后再做自定义返回
+     *
+     * @param outTradeNo
+     * @param tradeNo
+     * @param payer
+     * @return
+     */
+    private String handleSuccessfulNotify(String outTradeNo, String tradeNo, String payer) {
+        if (outTradeNo.startsWith("p_")) {
+            Order order = orderService.getOrderByOrderId(outTradeNo.split("_")[1]);
+            if (PayStatusEnum.SUCCESS.getStatus().equals(order.getStatus())) {
+                return "success";
+            }
+            if (ObjectUtil.notEqual(outTradeNo.split("_")[1], order.getOrderId())) {
+                return "fail";
+            }
+            log.info("通知成功,开始处理: {}", order.getOrderId());
+            redisService.del("panel::user::" + order.getUserId());
+            // 查询用户当前套餐
+            Order currentPlan = orderService.getCurrentPlan(order.getUserId());
+            // 查询是否新用户
+            Long buyCount = orderService.getBuyCountByUserId(order.getUserId());
+            Boolean isNewPayer = buyCount == 0;
+            // 更新订单
+            if (orderService.updateFinishedOrder(order.getPrice(), "支付宝", payer, isNewPayer, tradeNo, DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                order.setPayType("支付宝");
+                userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
+                Date now = new Date();
+                // 给该用户新增资金明细表
+                Funds funds = new Funds();
+                funds.setUserId(order.getUserId());
+                funds.setPrice(BigDecimal.ZERO.subtract(order.getPrice()));
+                funds.setTime(now);
+                funds.setRelatedOrderId(order.getOrderId());
+                funds.setContent(order.getPlanDetailsMap().get("name").toString());
+                funds.setContentEnglish(order.getPlanDetailsMap().get("nameEnglish").toString());
+                fundsService.save(funds);
+
+                // 如果有邀请人,给他加余额,并且给他新增一笔资金明细
+                User user = userService.getById(order.getUserId());
+                if (ObjectUtil.isNotEmpty(user.getParentId())) {
+                    User inviteUser = userService.getById(user.getParentId());
+                    // 用户有等级的话,给返利
+                    if (ObjectUtil.isNotEmpty(inviteUser) && inviteUser.getClazz() > 0) {
+                        redisService.del("panel::user::" + inviteUser.getId());
+                        BigDecimal commission = order.getPrice().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP);
+                        // 判断是循环返利还是首次返利
+                        if (inviteUser.getInviteCycleEnable()) {
+                            log.info("id为{}的用户开始循环返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                            userService.handleCommission(inviteUser.getId(), commission);
+                        } else {
+                            // 首次返利,查该用户是否第一次充值
+                            Long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
+                            if (count == 1) {
+                                // 首次
+                                log.info("id为{}的用户开始首次返利,原余额:{}, 返利后余额:{}", inviteUser.getId(), inviteUser.getMoney(), inviteUser.getMoney().add(commission));
+                                userService.handleCommission(inviteUser.getId(), commission);
+                            } else {
+                                return "success";
+                            }
+                        }
+                        // 给邀请人新增返利明细
+                        Funds inviteFund = new Funds();
+                        inviteFund.setUserId(inviteUser.getId());
+                        inviteFund.setPrice(order.getPrice().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                        inviteFund.setTime(now);
+                        inviteFund.setRelatedOrderId(order.getOrderId());
+                        inviteFund.setContent("佣金");
+                        inviteFund.setContentEnglish("Commission");
+                        fundsService.save(inviteFund);
+                        log.info("id为{}的用户获得返利{}元", inviteUser.getId(), inviteFund.getPrice());
+                    }
+                }
+                return "success";
+            }
+        } else {
+            Package pack = packageService.getById(outTradeNo.split("_")[1]);
+            if (PayStatusEnum.SUCCESS.getStatus().equals(pack.getStatus())) {
+                return "success";
+            }
+            if (ObjectUtil.notEqual(Integer.parseInt(outTradeNo.split("_")[1]), pack.getId())) {
+                return "fail";
+            }
+            log.info("通知成功,开始处理: {}", outTradeNo);
+            redisService.del("panel::user::" + pack.getUserId());
+            // 更新流量包订单
+            if (packageService.updateFinishedPackageOrder(pack.getPrice(), "支付宝", payer, DateUtil.date(), PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+                pack.setPayType("支付宝");
+                // 查询用户当前套餐
+                Order currentOrder = orderService.getCurrentPlan(pack.getUserId());
+                userService.updateUserAfterBuyPackageOrder(currentOrder, pack);
+                // 新增资金明细表
+                Funds funds = new Funds();
+                funds.setUserId(pack.getUserId());
+                funds.setPrice(BigDecimal.ZERO.subtract(pack.getPrice()));
+                funds.setTime(new Date());
+                funds.setRelatedOrderId(pack.getOrderId());
+                funds.setContent("流量包-" + pack.getPrice().multiply(new BigDecimal(currentOrder.getPlanDetailsMap().get("packagee").toString())) + "GB");
+                funds.setContentEnglish("Package-" + pack.getPrice().multiply(new BigDecimal(currentOrder.getPlanDetailsMap().get("packagee").toString())) + "GB");
+                fundsService.save(funds);
+                return "success";
+            }
+        }
+        return "fail";
     }
 }

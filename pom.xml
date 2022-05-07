@@ -10,13 +10,13 @@
     </parent>
     <groupId>project.daihao18</groupId>
     <artifactId>pmpanel</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.4</version>
     <name>panel_backend</name>
-    <description>daihao18's pmpanel project</description>
+    <description>project pmpanel</description>
 
     <properties>
         <java.version>1.8</java.version>
-        <log4j2.version>2.15.0</log4j2.version>
+        <log4j2.version>2.17.0</log4j2.version>
     </properties>
 
     <dependencies>
@@ -115,6 +115,13 @@
             <groupId>com.github.javen205</groupId>
             <artifactId>IJPay-WxPay</artifactId>
             <version>2.7.0</version>
+        </dependency>
+
+        <!--stripe-->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>20.95.0</version>
         </dependency>
 
         <!--TG Bot-->

@@ -63,7 +63,7 @@ public class SurgeUtil {
         StringBuilder builder = new StringBuilder();
         StringBuilder nodeName = new StringBuilder();
         // 开始处理订阅内容
-        builder.append("#!MANAGED-CONFIG " + user.getSubsLink() + "\n\n");
+        builder.append("#!MANAGED-CONFIG " + user.getSubsLink() + " interval=43200 strict=true\n\n");
         builder.append("#---------------------------------------------------#\n");
         builder.append("## 上次更新于：" + DateUtil.format(new Date(), "yyyy-MM-dd HH:mm:ss") + "\n");
         builder.append("#---------------------------------------------------#\n\n");
@@ -115,9 +115,11 @@ public class SurgeUtil {
                     }
                 }
                 // 删除nodeName最后的,和空格
-                nodeName.deleteCharAt(nodeName.length() - 1);
-                nodeName.deleteCharAt(nodeName.length() - 1);
-                nodeName.append("\n");
+                if (nodeName.length() > 1) {
+                    nodeName.deleteCharAt(nodeName.length() - 1);
+                    nodeName.deleteCharAt(nodeName.length() - 1);
+                    nodeName.append("\n");
+                }
                 continue;
             } else if (tmpContent.contains("{node}")) {
                 builder.append(tmpContent);

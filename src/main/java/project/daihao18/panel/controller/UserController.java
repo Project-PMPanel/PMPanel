@@ -1,6 +1,7 @@
 package project.daihao18.panel.controller;
 
 import com.alipay.api.AlipayApiException;
+import com.stripe.exception.StripeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import project.daihao18.panel.common.response.Result;
@@ -258,7 +259,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/payOrder")
-    public Result payOrder(HttpServletRequest request, @RequestBody CommonOrder order) throws AlipayApiException {
+    public Result payOrder(HttpServletRequest request, @RequestBody CommonOrder order) throws AlipayApiException, StripeException {
         return userService.payOrder(request, order);
     }
 

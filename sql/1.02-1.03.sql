@@ -1,0 +1,1 @@
+INSERT INTO `schedule`(`id`, `bean_name`, `method_name`, `method_params`, `cron_expression`, `remark`, `job_status`, `created_time`, `update_time`) VALUES (6, 'telegramJobTaskService', 'telegramJob', NULL, '*/2 * * * * ?', 'telegram任务', 1, '2020-11-11 11:11:11', NULL);

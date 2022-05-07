@@ -162,7 +162,7 @@ public class AdminServiceImpl implements AdminService {
         LocalDateTime monthBeginTimeStart = timeNow.with(TemporalAdjusters.firstDayOfMonth()).withHour(0).withMinute(0).withSecond(0);
         // 本月的最后一天23:59:59
         LocalDateTime monthEndTimeEnd = timeNow.with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59);
-        for (int i = 0; i < timeNow.getMonthValue() ; i++) {
+        for (int i = 0; i < timeNow.getMonthValue(); i++) {
             // 查订单收入
             QueryWrapper<Order> orderQueryWrapper = new QueryWrapper<>();
             orderQueryWrapper
@@ -183,12 +183,12 @@ public class AdminServiceImpl implements AdminService {
             BigDecimal thisMonthPackageIncome = BigDecimal.ZERO;
             if (ObjectUtil.isNotEmpty(orders)) {
                 for (Order order : orders) {
-                    thisMonthOrderIncome = thisMonthOrderIncome.add(order.getMixedPayAmount());
+                    thisMonthOrderIncome = thisMonthOrderIncome.add(order.getPrice());
                 }
             }
             if (ObjectUtil.isNotEmpty(packages)) {
                 for (Package packagee : packages) {
-                    thisMonthPackageIncome = thisMonthPackageIncome.add(packagee.getMixedPayAmount());
+                    thisMonthPackageIncome = thisMonthPackageIncome.add(packagee.getPrice());
                 }
             }
             Map<String, Object> map1 = new HashMap<>();
@@ -198,12 +198,12 @@ public class AdminServiceImpl implements AdminService {
             map1.put("value", thisMonthOrderIncome);
             map2.put("month", (timeNow.getMonthValue() - (timeNow.getMonthValue() - i - 1)) + "月");
             map2.put("type", "流量包");
-            map2.put("value",thisMonthPackageIncome);
+            map2.put("value", thisMonthPackageIncome);
             monthList.add(map1);
             monthList.add(map2);
         }
         // 补齐当年剩余月份
-        for (int i = timeNow.getMonthValue() + 1; i <= 12 ; i++) {
+        for (int i = timeNow.getMonthValue() + 1; i <= 12; i++) {
             Map<String, Object> map1 = new HashMap<>();
             Map<String, Object> map2 = new HashMap<>();
             map1.put("month", i + "月");
@@ -211,7 +211,7 @@ public class AdminServiceImpl implements AdminService {
             map1.put("value", 0);
             map2.put("month", i + "月");
             map2.put("type", "流量包");
-            map2.put("value",0);
+            map2.put("value", 0);
             monthList.add(map1);
             monthList.add(map2);
         }
@@ -332,19 +332,27 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public Result getPaymentConfig() {
-        String[] keys = {"alipay", "wxpay", "alipayConfig"};
+        String[] keys = {"alipay", "wxpay", "alipayConfig", "stripeConfig"};
         Map<String, Object> paymentConfig = new HashMap<>();
         for (int i = 0; i < keys.length; i++) {
             String value = configService.getValueByName(keys[i]);
             if ("alipay".equalsIgnoreCase(keys[i]) || "wxpay".equalsIgnoreCase(keys[i])) {
                 paymentConfig.put(keys[i], value);
-            } else {
+            } else if ("alipayConfig".equals(keys[i])) {
                 // 支付详细配置,转成map
                 Map<String, Object> map = JSONUtil.toBean(value, Map.class);
                 map.put("isCertMode", Boolean.parseBoolean(map.get("isCertMode").toString()));
                 map.put("web", Boolean.parseBoolean(map.get("web").toString()));
                 map.put("wap", Boolean.parseBoolean(map.get("wap").toString()));
                 map.put("f2f", Boolean.parseBoolean(map.get("f2f").toString()));
+                paymentConfig.put(keys[i], map);
+            } else if ("stripeConfig".equals(keys[i])) {
+                // stripe配置,转成map
+                Map<String, Object> map = JSONUtil.toBean(value, Map.class);
+                map.put("currency", map.get("currency"));
+                map.put("sk_live", map.get("sk_live"));
+                map.put("webhook_secret", map.get("webhook_secret"));
+                map.put("return_url", map.get("return_url"));
                 paymentConfig.put(keys[i], map);
             }
         }
@@ -1161,17 +1169,24 @@ public class AdminServiceImpl implements AdminService {
                 if ("alipay".equals(configService.getValueByName("alipay"))) {
                     CommonOrder commonOrder = new CommonOrder();
                     commonOrder.setId(order.getOrderId());
-                    commonOrder.setMixedPayAmount(order.getMixedPayAmount());
+                    commonOrder.setPayAmount(order.getPayAmount());
+                    commonOrder.setType("plan");
                     AlipayTradeRefundResponse response = this.alipay.refund(commonOrder);
                     if ("10000".equals(response.getCode())) {
-                        // 更新用户金额
-                        User user = userService.getUserById(order.getUserId(), true);
-                        user.setMoney(user.getMoney().add(order.getMixedMoneyAmount()));
-                        userService.updateById(user);
-                        redisService.del("panel::user::" + order.getUserId());
-                        return Result.ok();
+                        // 更新订单为失效
+                        order.setStatus(PayStatusEnum.INVALID.getStatus());
+                        return orderService.updateById(order) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
                     }
                 }
+            } else if ("余额".equals(order.getPayType())) {
+                // 更新用户金额
+                User user = userService.getUserById(order.getUserId(), true);
+                user.setMoney(user.getMoney().add(order.getPayAmount()));
+                userService.updateById(user);
+                redisService.del("panel::user::" + order.getUserId());
+                // 更新订单为失效
+                order.setStatus(PayStatusEnum.INVALID.getStatus());
+                return orderService.updateById(order) ? Result.ok() : Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
             } else {
                 return Result.error().message("该支付方式不支持退款").messageEnglish("The payment method doesn't support refund function");
             }
@@ -1200,7 +1215,7 @@ public class AdminServiceImpl implements AdminService {
             // 查看用户最新的套餐,若最新的套餐与当前套餐不同,则不允许返还当前套餐
             Order latestPlan = userService.getLatestPlan(user.getId());
             // 如果要取消的订单是该用户最新的一笔订单
-            if ( order.getOrderId().equals(latestPlan.getOrderId())) {
+            if (order.getOrderId().equals(latestPlan.getOrderId())) {
                 if (plan.getOrderId().equals(order.getOrderId())) {
                     user.setClazz(Integer.parseInt(order.getUserDetailsMap().get("clazz").toString()));
                     user.setU(Long.parseLong(order.getUserDetailsMap().get("u").toString()));
@@ -1255,16 +1270,15 @@ public class AdminServiceImpl implements AdminService {
         if (ObjectUtil.isNotEmpty(order) && (order.getStatus() == 0 || order.getStatus() == 2)) {
             // 根据订单修改用户
             redisService.del("panel::user::" + order.getUserId());
-            order.setIsMixedPay(false);
-            order.setMixedMoneyAmount(BigDecimal.ZERO);
-            order.setMixedPayAmount(order.getPrice());
+            order.setPayAmount(order.getPrice());
             // 查询用户当前套餐
             Order currentPlan = orderService.getCurrentPlan(order.getUserId());
             // 查询是否新用户
             long buyCount = orderService.getBuyCountByUserId(order.getUserId());
             Boolean isNewPayer = buyCount == 0;
             // 更新订单
-            if (orderService.updateFinishedOrder(order.getIsMixedPay(), order.getMixedMoneyAmount(), order.getMixedPayAmount(), "余额", null, isNewPayer, null, new Date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+            if (orderService.updateFinishedOrder(order.getPayAmount(), "手动确认", null, isNewPayer, null, new Date(), PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+                order.setPayType("手动确认");
                 userService.updateUserAfterBuyOrder(order, ObjectUtil.isEmpty(currentPlan));
                 Date now = new Date();
                 // 给该用户新增资金明细表
@@ -1286,19 +1300,19 @@ public class AdminServiceImpl implements AdminService {
                         redisService.del("panel::user::" + inviteUser.getId());
                         // 判断是循环返利还是首次返利
                         if (inviteUser.getInviteCycleEnable()) {
-                            userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                            userService.handleCommission(inviteUser.getId(), order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                         } else {
                             // 首次返利,查该用户是否第一次充值
                             long count = fundsService.count(new QueryWrapper<Funds>().eq("user_id", user.getId()));
                             if (count == 1) {
                                 // 首次
-                                userService.handleCommission(inviteUser.getId(), order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                                userService.handleCommission(inviteUser.getId(), order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                             }
                         }
                         // 给邀请人新增返利明细
                         Funds inviteFund = new Funds();
                         inviteFund.setUserId(inviteUser.getId());
-                        inviteFund.setPrice(order.getMixedPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
+                        inviteFund.setPrice(order.getPayAmount().multiply(inviteUser.getInviteCycleRate()).setScale(2, BigDecimal.ROUND_HALF_UP));
                         inviteFund.setTime(now);
                         inviteFund.setRelatedOrderId(order.getOrderId());
                         inviteFund.setContent("佣金");

@@ -37,11 +37,7 @@ public class Package implements Serializable {
 
     private Date expire;
 
-    private Boolean isMixedPay;
-
-    private BigDecimal mixedMoneyAmount;
-
-    private BigDecimal mixedPayAmount;
+    private BigDecimal payAmount;
 
     private String payType;
 

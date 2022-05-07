@@ -15,6 +15,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.stripe.exception.StripeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import project.daihao18.panel.common.enums.PayStatusEnum;
 import project.daihao18.panel.common.exceptions.CustomException;
 import project.daihao18.panel.common.payment.alipay.Alipay;
+import project.daihao18.panel.common.payment.stripe.Stripe;
 import project.daihao18.panel.common.response.Result;
 import project.daihao18.panel.common.response.ResultCodeEnum;
 import project.daihao18.panel.common.utils.*;
@@ -89,6 +91,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private Alipay alipay;
+
+    @Autowired
+    private Stripe stripe;
 
     @Autowired
     private TicketService ticketService;
@@ -242,7 +247,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     .data("emailList", emailList)
                     .data("panelSiteTitle", siteName)
                     .data("panelMailRegisterEnable", panelMailRegisterEnable)
-                    .data("loginWith",loginWith);
+                    .data("loginWith", loginWith);
         }
     }
 
@@ -494,6 +499,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             Result calcInfo = this.getChoosePlanInfo(user, plan.getMonths(), plan.getPrice(), order.getMonthCount());
             order.setPrice(new BigDecimal(calcInfo.getData().get("calcPrice").toString()));
+            order.setPayAmount(BigDecimal.ZERO);
             order.setExpire(DateUtil.parse(calcInfo.getData().get("calcExpire").toString()));
             order.setOrderId(OrderUtil.getOrderId());
             order.setStatus(PayStatusEnum.WAIT_FOR_PAY.getStatus());
@@ -757,6 +763,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional
     public Result addPackageOrder(Integer userId, Package pack) {
         synchronized (OrderLockUtil.class) {
+            // 最低3元起
+            if (pack.getPrice().compareTo(new BigDecimal("3.00")) < 0) {
+                return Result.error().message("最低三元起").messageEnglish("At least 3 CNY");
+            }
             // 先查询该用户是否存在未支付的流量包订单
             Package existPackageOrder = packageService.getOne(new QueryWrapper<Package>().eq("user_id", userId).eq("status", PayStatusEnum.WAIT_FOR_PAY.getStatus()));
             if (ObjectUtil.isNotEmpty(existPackageOrder)) {
@@ -881,12 +891,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     @Transactional
-    public Result payOrder(HttpServletRequest request, CommonOrder commonOrder) throws AlipayApiException {
+    public Result payOrder(HttpServletRequest request, CommonOrder commonOrder) throws AlipayApiException, StripeException {
         synchronized (OrderLockUtil.class) {
-            if (BigDecimal.ZERO.compareTo(commonOrder.getMixedMoneyAmount()) == 0) {
-                // 如果余额为0,那就是单一支付
-                commonOrder.setIsMixedPay(false);
-            }
             User user = this.getById(JwtTokenUtil.getId(request));
             // 1.根据payType获取订单,再判断是否非法请求
             Order order = null;
@@ -913,66 +919,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             } else {
                 return Result.setResult(ResultCodeEnum.PARAM_ERROR);
             }
-            // 2.根据是否是混合支付来设定订单
+            // 2.设定订单
             // 获取支付配置
             String alipay = configService.getValueByName("alipay");
             String wxpay = configService.getValueByName("wxpay");
-            if (commonOrder.getIsMixedPay()) {
-                // 调用外部支付
-                // 2.1 校验一下混合支付金额是否正确
-                if ("plan".equals(commonOrder.getType())) {
-                    if (order.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
-                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                    }
-                } else {
-                    if (pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount().add(commonOrder.getMixedPayAmount())) != 0) {
-                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                    }
-                }
-                switch (commonOrder.getPayType()) {
-                    case "alipay":
-                        return payOrderByAlipay(alipay, commonOrder, true);
-                    case "wxpay":
-                        // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
-                    default:
-                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                }
-
-            } else {
-                // 根据单一支付来执行逻辑
-                // 2.1 校验一下单一支付金额是否正确
-                if ("plan".equals(commonOrder.getType())) {
-                    if ("money".equals(commonOrder.getPayType())) {
-                        if (!(order.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
-                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                        }
-                    } else {
-                        if (!(order.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
-                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                        }
-                    }
-                } else {
-                    if ("money".equals(commonOrder.getPayType())) {
-                        if (!(pack.getPrice().compareTo(commonOrder.getMixedMoneyAmount()) == 0 && commonOrder.getMixedPayAmount().compareTo(BigDecimal.ZERO) == 0)) {
-                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                        }
-                    } else {
-                        if (!(pack.getPrice().compareTo(commonOrder.getMixedPayAmount()) == 0 && commonOrder.getMixedMoneyAmount().compareTo(BigDecimal.ZERO) == 0)) {
-                            return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                        }
-                    }
-                }
-                switch (commonOrder.getPayType()) {
-                    case "money":
-                        return "plan".equals(commonOrder.getType()) ? singlePayOrderByMoney(user, order) : singlePayOrderByMoney(user, pack);
-                    case "alipay":
-                        return payOrderByAlipay(alipay, commonOrder, false);
-                    case "wxpay":
-                        // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
-                    default:
-                        return Result.setResult(ResultCodeEnum.PARAM_ERROR);
-                }
-
+            switch (commonOrder.getPayType()) {
+                case "money":
+                    return "plan".equals(commonOrder.getType()) ? singlePayOrderByMoney(user, order) : singlePayPackByMoney(user, pack);
+                case "alipay":
+                    return payOrderByAlipay(alipay, commonOrder);
+                case "wxpay":
+                    // return "plan".equals(commonOrder.getType()) ? singlePayOrderByWxpay(user, order) : singlePayOrderByWxpay(user, pack);
+                default:
+                    return Result.setResult(ResultCodeEnum.PARAM_ERROR);
             }
         }
     }
@@ -989,9 +948,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public boolean updateUserAfterBuyOrder(Order order, boolean isNewBuy) {
         // 不管是新购还是预先购买套餐,先设置user公共部分
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
-        userUpdateWrapper
-                .setSql("money=money-" + order.getMixedMoneyAmount())
-                .set("expire_in", order.getExpire());
+        if ("余额".equals(order.getPayType())) {
+            userUpdateWrapper.setSql("money=money-" + order.getPrice());
+        }
+        userUpdateWrapper.set("expire_in", order.getExpire());
         if (isNewBuy) {
             // 如果是新购套餐,给用户设置套餐所有内容,不是新购套餐,等到期的月初重置
             userUpdateWrapper
@@ -1031,8 +991,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Integer packagee = (Integer) currentOrder.getPlanDetailsMap().get("packagee");
         // 更新用户
         UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
+        if ("余额".equals(pack.getPayType())) {
+            userUpdateWrapper.setSql("money=money-" + pack.getPrice());
+        }
         userUpdateWrapper
-                .setSql("money=money-" + pack.getMixedMoneyAmount())
                 .setSql("transfer_enable=transfer_enable+" + pack.getPrice().longValue() * FlowSizeConverterUtil.GbToBytes(packagee))
                 .eq("id", pack.getUserId());
         if (this.update(userUpdateWrapper)) {
@@ -1061,7 +1023,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Order currentPlan = orderService.getCurrentPlan(user.getId());
         // 更新order成功后更新用户
         Date now = new Date();
-        if (orderService.updateFinishedOrder(false, order.getPrice(), BigDecimal.ZERO, "余额", null, null, null, now, PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+        if (orderService.updateFinishedOrder(BigDecimal.ZERO, "余额", null, null, null, now, PayStatusEnum.SUCCESS.getStatus(), order.getId())) {
+            order.setPayType("余额");
             this.updateUserAfterBuyOrder(orderService.getOrderByOrderId(order.getOrderId()), ObjectUtil.isEmpty(currentPlan));
             // 新增资金明细表
             Funds funds = new Funds();
@@ -1087,7 +1050,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param pack
      * @return
      */
-    private Result singlePayOrderByMoney(User user, Package pack) {
+    private Result singlePayPackByMoney(User user, Package pack) {
         Lock lock = new ReentrantLock();
         lock.lock();
         // 余额不足直接返回
@@ -1101,7 +1064,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         Date now = new Date();
         // 更新pack成功后更新用户
-        if (packageService.updateFinishedPackageOrder(false, pack.getPrice(), BigDecimal.ZERO, "余额", null, now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+        if (packageService.updateFinishedPackageOrder(BigDecimal.ZERO, "余额", null, now, PayStatusEnum.SUCCESS.getStatus(), pack.getId())) {
+            pack.setPayType("余额");
             this.updateUserAfterBuyPackageOrder(currentOrder, packageService.getById(pack.getId()));
             // 新增资金明细表
             Funds funds = new Funds();
@@ -1125,18 +1089,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      *
      * @param alipay
      * @param order
-     * @param isMixedPay
      * @return
      * @throws AlipayApiException
      */
-    private Result payOrderByAlipay(String alipay, CommonOrder order, Boolean isMixedPay) throws AlipayApiException {
+    private Result payOrderByAlipay(String alipay, CommonOrder order) throws AlipayApiException, StripeException {
         Lock lock = new ReentrantLock();
         lock.lock();
         // 根据配置去调用接口
         Map<String, Object> result = null;
         switch (alipay) {
             case "alipay":
-                result = this.alipay.create(order, isMixedPay);
+                result = this.alipay.create(order);
+                break;
+            case "stripe":
+                result = this.stripe.create(order);
                 break;
         }
         lock.unlock();
@@ -1242,9 +1208,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional
-    public Result saveTicket(Integer userId, Ticket ticket, String type) {
-        Lock lock = new ReentrantLock();
-        lock.lock();
+    public synchronized Result saveTicket(Integer userId, Ticket ticket, String type) {
         ticket.setUserId(userId);
         ticket.setTime(new Date());
         if ("reply".equals(type)) {
@@ -1276,12 +1240,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     bot.execute(new SendMessage(admin.getTgId(), "有新的工单待处理~"));
                 }
             }
-            lock.unlock();
             return Result.ok().message("提交成功").messageEnglish("Submit successfully");
-        } else {
-            lock.unlock();
-            return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
         }
+        return Result.setResult(ResultCodeEnum.UNKNOWN_ERROR);
     }
 
     @Override
@@ -1475,9 +1436,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 map.put("day", DateUtil.dayOfMonth(traffic.getDate()) + "号");
                 map.put("traffic", "上传");
                 map.put("value", FlowSizeConverterUtil.BytesToMb(traffic.getU()));
-                map2.put("day",DateUtil.dayOfMonth(traffic.getDate()) + "号");
+                map2.put("day", DateUtil.dayOfMonth(traffic.getDate()) + "号");
                 map2.put("traffic", "下载");
-                map2.put("value",FlowSizeConverterUtil.BytesToMb(traffic.getD()));
+                map2.put("value", FlowSizeConverterUtil.BytesToMb(traffic.getD()));
                 monthList.add(map);
                 monthList.add(map2);
             }
@@ -1489,9 +1450,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 map.put("day", i + "号");
                 map.put("traffic", "上传");
                 map.put("value", 0);
-                map2.put("day",i + "号");
+                map2.put("day", i + "号");
                 map2.put("traffic", "下载");
-                map2.put("value",0);
+                map2.put("value", 0);
                 monthList.add(map);
                 monthList.add(map2);
             }
@@ -1504,9 +1465,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             map.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map.put("traffic", "上传");
             map.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("u"))))));
-            map2.put("day",LocalDateTimeUtil.now().getDayOfMonth() + "号");
+            map2.put("day", LocalDateTimeUtil.now().getDayOfMonth() + "号");
             map2.put("traffic", "下载");
-            map2.put("value",FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("d"))))));
+            map2.put("value", FlowSizeConverterUtil.BytesToMb(Long.parseLong(FlowSizeConverterUtil.convertNumber(String.valueOf(todayTraffic.get("d"))))));
             monthList.add(map);
             monthList.add(map2);
         }
@@ -1517,9 +1478,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             map.put("day", i + "号");
             map.put("traffic", "上传");
             map.put("value", 0);
-            map2.put("day",i + "号");
+            map2.put("day", i + "号");
             map2.put("traffic", "下载");
-            map2.put("value",0);
+            map2.put("value", 0);
             monthList.add(map);
             monthList.add(map2);
         }
